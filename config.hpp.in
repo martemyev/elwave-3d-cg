@@ -15,6 +15,7 @@ const std::string SNAPSHOTS_DIR   = "snapshots/";
 //const int ELAST_MATRIX_SIZE = 9; // the elasticity matrix for each fine cell
 //                                 // is a 3x3 matrix
 
+const int SPACE_DIM = 3; // spatial dimension of the problem
 const int N_ELAST_COMPONENTS = 3; // number of components of the displacement
 
 const double VERY_SMALL_NUMBER = 1e-32;

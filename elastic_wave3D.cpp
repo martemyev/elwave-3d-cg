@@ -100,7 +100,7 @@ Vector compute_function_at_points(double sx, double sy, double sz,
                                   const GridFunction& U)
 {
   MFEM_ASSERT(points.size() == cells_containing_points.size(), "Sizes mismatch");
-  Vector U_at_points(2*points.size());
+  Vector U_at_points(N_ELAST_COMPONENTS*points.size());
 
   for (size_t p = 0; p < points.size(); ++p)
   {
