@@ -13,7 +13,9 @@ void create_segment_GLL_rule(int p, IntegrationRule& segment_GLL)
 {
   segment_GLL.SetSize(p+1);
 
-  { // computation of GLL points in MFEM (for comparison)
+#if defined(MFEM_DEBUG)
+  {
+    // computation of GLL points in MFEM (for comparison)
     double *GLL_points_mfem= new double[p+1];
     Poly_1D::GaussLobattoPoints(p, GLL_points_mfem);
     cout << "GLL points 2 on [0, 1]:\n";
@@ -21,24 +23,27 @@ void create_segment_GLL_rule(int p, IntegrationRule& segment_GLL)
       cout << setw(10) << GLL_points_mfem[i] << endl;
     delete[] GLL_points_mfem;
   }
+#endif // MFEM_DEBUG
 
   Vector GLL_points, GLL_weights;
   segment_GLL_quadrature(p, GLL_points, GLL_weights);
 
-  cout << "GLL points & weights on [-1, 1]:\n";
-  for (int i = 0; i < p+1; ++i)
-    cout << setw(10) << GLL_points[i] << " " << GLL_weights[i] << endl;
-
-  cout << "GLL points & weights on [0, 1]:\n";
   for (int i = 0; i < p+1; ++i)
   {
     // shift from [-1, 1] to [0, 1]
     segment_GLL.IntPoint(i).x      = 0.5*GLL_points[i] + 0.5;
     segment_GLL.IntPoint(i).weight = 0.5*GLL_weights[i];
+  }
 
+#if defined(MFEM_DEBUG)
+  cout << "GLL points & weights on [-1, 1]:\n";
+  for (int i = 0; i < p+1; ++i)
+    cout << setw(10) << GLL_points[i] << " " << GLL_weights[i] << endl;
+  cout << "GLL points & weights on [0, 1]:\n";
+  for (int i = 0; i < p+1; ++i)
     cout << setw(10) << segment_GLL.IntPoint(i).x
          << " " << segment_GLL.IntPoint(i).weight << endl;
-  }
+#endif // MFEM_DEBUG
 }
 
 

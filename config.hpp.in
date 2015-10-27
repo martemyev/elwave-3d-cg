@@ -3,7 +3,7 @@
 
 #include <string>
 
-#cmakedefine DEBUG_WAVE
+#include "config/config.hpp" // MFEM config file
 
 #ifndef nullptr
   #define nullptr NULL

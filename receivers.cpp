@@ -41,7 +41,7 @@ find_cells_containing_receivers(int nx, int ny, int nz, double sx, double sy,
   const bool throw_exception = true;
 
   for (int p = 0; p < _n_receivers; ++p)
-    _cells_containing_receivers[p] = find_element(nx, ny, nz, sx, sy, sz,
+    _cells_containing_receivers[p] = find_element(sx, sy, sz, nx, ny, nz,
                                                   _receivers[p],
                                                   throw_exception);
 }
@@ -248,16 +248,19 @@ std::string ReceiversPlane::description() const
 // Auxiliary
 //
 //==============================================================================
-int find_element(int nx, int ny, int nz, double sx, double sy, double sz,
+int find_element(double sx, double sy, double sz, int nx, int ny, int nz,
                  const Vertex &point, bool throw_exception)
 {
   const double px = point(0); // coordinates of the point of interest
   const double py = point(1);
+  const double pz = point(2);
 
   const double x0 = 0.0; // limits of the rectangular mesh
   const double x1 = sx;
   const double y0 = 0.0;
   const double y1 = sy;
+  const double z0 = 0.0;
+  const double z1 = sz;
 
   // check that the point is within the mesh
   const double tol = FIND_CELL_TOLERANCE;

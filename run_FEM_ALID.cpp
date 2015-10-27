@@ -1,4 +1,4 @@
-#include "elastic_wave2D.hpp"
+#include "elastic_wave3D.hpp"
 #include "parameters.hpp"
 #include "receivers.hpp"
 
@@ -189,58 +189,9 @@ void ElasticWave2D::run_FEM_ALID()
            << " ||solution||_{L^2} = " << u_0.Norml2() << endl;
 
     if (time_step % param.step_snap == 0)
-    {
-      Vector u_x, u_y, v_x, v_y;
-      u_0.GetNodalValues(u_x, 1);
-      u_0.GetNodalValues(u_y, 2);
-      v_1.GetNodalValues(v_x, 1);
-      v_1.GetNodalValues(v_y, 2);
+      output_snapshots(time_step, snapshot_filebase, param, u_0, v_1);
 
-      string tstep = d2s(time_step,0,0,0,6);
-      string fname = snapshot_filebase + "_U_t" + tstep + ".vts";
-      write_vts_vector(fname, "U", param.sx, param.sy, param.nx, param.ny, u_x, u_y);
-      fname = snapshot_filebase + "_V_t" + tstep + ".vts";
-      write_vts_vector(fname, "V", param.sx, param.sy, param.nx, param.ny, v_x, v_y);
-      fname = snapshot_filebase + "_Ux_t" + tstep + ".bin";
-      write_binary(fname.c_str(), u_x.Size(), u_x);
-      fname = snapshot_filebase + "_Uy_t" + tstep + ".bin";
-      write_binary(fname.c_str(), u_y.Size(), u_y);
-      fname = snapshot_filebase + "_Vx_t" + tstep + ".bin";
-      write_binary(fname.c_str(), v_x.Size(), v_x);
-      fname = snapshot_filebase + "_Vy_t" + tstep + ".bin";
-      write_binary(fname.c_str(), v_y.Size(), v_y);
-    }
-
-    // for each set of receivers
-    for (int rec = 0; rec < n_rec_sets; ++rec)
-    {
-      const ReceiversSet *rec_set = param.sets_of_receivers[rec];
-      const Vector U_0 = compute_solution_at_points(rec_set->get_receivers(),
-                                                    rec_set->get_cells_containing_receivers(),
-                                                    u_0);
-      const Vector U_2 = compute_solution_at_points(rec_set->get_receivers(),
-                                                    rec_set->get_cells_containing_receivers(),
-                                                    u_2);
-
-      MFEM_ASSERT(U_0.Size() == N_ELAST_COMPONENTS*rec_set->n_receivers(),
-                  "Sizes mismatch");
-      Vector V_1 = U_0;
-      V_1 -= U_2;
-      V_1 /= 2.0*param.dt; // central difference
-
-      float val;
-      for (int i = 0; i < U_0.Size(); i += N_ELAST_COMPONENTS)
-      {
-        for (int j = 0; j < N_ELAST_COMPONENTS; ++j)
-        {
-          val = U_0(i+j);
-          seisU[rec*N_ELAST_COMPONENTS + j].write(reinterpret_cast<char*>(&val), sizeof(val));
-
-          val = V_1(i+j);
-          seisV[rec*N_ELAST_COMPONENTS + j].write(reinterpret_cast<char*>(&val), sizeof(val));
-        }
-      }
-    } // for each set of receivers
+    output_seismograms(param, mesh, u_0, v_1, seisU, seisV);
 
     u_2 = u_1;
     u_1 = u_0;

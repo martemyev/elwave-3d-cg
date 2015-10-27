@@ -89,7 +89,8 @@ void get_minmax(double *a, int n_elements, double &min_val, double &max_val);
  */
 void write_vts_vector(const std::string& filename, const std::string& solname,
                       double sx, double sy, double sz, int nx, int ny, int nz,
-                      const mfem::Vector& sol_x, const mfem::Vector& sol_y);
+                      const mfem::Vector& sol_x, const mfem::Vector& sol_y,
+                      const mfem::Vector& sol_z);
 
 /**
  * Write scalar values in a VTS format

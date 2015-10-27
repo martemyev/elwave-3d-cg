@@ -196,6 +196,7 @@ void Parameters::init(int argc, char **argv)
   source.AddOptions(args);
 
   args.AddOption(&step_snap, "-step-snap", "--step-snap", "Time step for outputting snapshots");
+  args.AddOption(&snapshot_format, "-snap-format", "--snapshot-format", "Format of snapshots (0 binary, 1 VTS)");
 
   args.AddOption(&method, "-method", "--method", "0 - FEM, 1 - SEM");
 

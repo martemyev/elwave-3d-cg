@@ -129,7 +129,7 @@ protected:
 
 
 
-int find_element(int nx, int ny, int nz, double sx, double sy, double sz,
+int find_element(double sx, double sy, double sz, int nx, int ny, int nz,
                  const mfem::Vertex &point, bool throw_exception);
 
 

@@ -134,17 +134,25 @@ private:
 
 
 
-mfem::Vector compute_solution_at_points(const std::vector<mfem::Vertex>& points,
+void show_SRM_damp_weights(const Parameters& param);
+
+mfem::Vector compute_function_at_point(double sx, double sy, double sz, int nx,
+                                       int ny, int nz, const mfem::Mesh& mesh,
+                                       const mfem::Vertex& point, int cell,
+                                       const mfem::GridFunction& U);
+
+mfem::Vector compute_function_at_points(double sx, double sy, double sz, int nx,
+                                        int ny, int nz, const mfem::Mesh& mesh,
+                                        const std::vector<mfem::Vertex>& points,
                                         const std::vector<int>& cells_containing_points,
                                         const mfem::GridFunction& U);
 
-void show_SRM_damp_weights(const Parameters& param);
+void output_snapshots(int time_step, const std::string& snapshot_filebase,
+                      const Parameters& param, const mfem::GridFunction& U,
+                      const mfem::GridFunction& V);
 
-void cells_containing_vertices(const mfem::Mesh& mesh, int nx, int ny,
-                               double sx, double sy, std::vector<int>& cells);
-
-mfem::Vector get_nodal_values(const std::vector<int>& cells,
-                              const mfem::Mesh& mesh,
-                              const mfem::GridFunction& U, int vdim);
+void output_seismograms(const Parameters& param, const mfem::Mesh& mesh,
+                        const mfem::GridFunction &U, const mfem::GridFunction &V,
+                        std::ofstream *seisU, std::ofstream *seisV);
 
 #endif // ELASTIC_WAVE3D_HPP

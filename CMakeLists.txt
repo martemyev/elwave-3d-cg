@@ -5,13 +5,8 @@ project(elwave-3d-cg CXX)
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RELEASE CACHE STRING
       "Choose the type of build: Debug | Release | RelWithDebInfo" FORCE)
-  set(DEBUG_WAVE OFF)
 endif()
 string(TOUPPER ${CMAKE_BUILD_TYPE} BUILD_TYPE)
-
-if(BUILD_TYPE MATCHES DEBUG)
-  set(DEBUG_WAVE ON)
-endif()
 
 set(MFEM_DIR "/u/artemyev/projects/mfem/")
 include_directories("${MFEM_DIR}")

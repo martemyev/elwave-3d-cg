@@ -16,7 +16,7 @@ class Source
 {
 public:
   Source();
-  ~Source();
+  ~Source() { }
 
   mfem::Vertex location;
   double frequency;
@@ -79,6 +79,7 @@ public:
   Source source; ///< source of the wave
 
   int step_snap; ///< time step for outputting snapshots (every *th time step)
+  int snapshot_format; ///< 0 - binary, 1 - VTS
 
   int method; ///< 0 - FEM, 1 - SEM
 
