@@ -21,7 +21,7 @@ public:
   double point_force_scale;
   double gauss_support;
   double Mxx, Mxy, Mxz, Myy, Myz, Mzz; // components of a moment tensor
-  int type; // 0 - Delta function, 1 - Gaussian function
+  int type; // 0 - Delta function, 1 - Gaussian function, 2 - Plane wave
 
   void AddOptions(mfem::OptionsParser& args);
 
@@ -29,6 +29,7 @@ public:
   double GaussFirstDerivative(double t) const;
   void PointForce(const mfem::Vector& x, mfem::Vector& f) const;
   void MomentTensorSource(const mfem::Vector& x, mfem::Vector& f) const;
+  void PlaneWaveSource(const mfem::Vector& x, mfem::Vector& f) const;
 
 private:
   void compute_direction_vector();

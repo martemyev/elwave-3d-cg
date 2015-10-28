@@ -107,20 +107,22 @@ void ElasticWave2D::run_SEM_SRM()
   cout << "done. Time = " << chrono.RealTime() << " sec" << endl;
   chrono.Clear();
 
+  cout << "RHS vector... " << flush;
   VectorPointForce vector_point_force(dim, param.source);
   VectorDomainLFIntegrator *point_force_int = new VectorDomainLFIntegrator(vector_point_force);
   point_force_int->SetIntRule(&hex_GLL);
+  LinearForm pf(&fespace);
+  pf.AddDomainIntegrator(point_force_int);
+  pf.Assemble();
+  cout << "||pf||_L2 = " << pf.Norml2() << " ";
 
   MomentTensorSource momemt_tensor_source(dim, param.source);
   VectorDomainLFIntegrator *moment_tensor_int = new VectorDomainLFIntegrator(momemt_tensor_source);
   moment_tensor_int->SetIntRule(&hex_GLL);
-
-  cout << "RHS vector..." << flush;
-  LinearForm b(&fespace);
-  b.AddDomainIntegrator(point_force_int);
-  b.AddDomainIntegrator(moment_tensor_int);
-  b.Assemble();
-  cout << "||b||_L2 = " << b.Norml2() << endl;
+  LinearForm mt(&fespace);
+  mt.AddDomainIntegrator(moment_tensor_int);
+  mt.Assemble();
+  cout << "||mt||_L2 = " << mt.Norml2() << " ";
   cout << "done. Time = " << chrono.RealTime() << " sec" << endl;
   chrono.Clear();
 
@@ -129,7 +131,7 @@ void ElasticWave2D::run_SEM_SRM()
 
   for (int i = 0; i < diagM.Size(); ++i)
     MFEM_VERIFY(fabs(diagM[i]) > FLOAT_NUMBERS_EQUALITY_TOLERANCE,
-                string("There is a small (") + d2s(diagM[i]) + ") number (row "
+                "There is a small (" + d2s(diagM[i]) + ") number (row "
                 + d2s(i) + ") on the mass matrix diagonal");
 
   const string method_name = "SEM_";
@@ -182,7 +184,8 @@ void ElasticWave2D::run_SEM_SRM()
   {
     const double cur_time = time_step * param.dt;
 
-    const double r = param.source.Ricker(cur_time - param.dt);
+    const double ric = param.source.Ricker(cur_time - param.dt);
+    const double gfd = param.source.GaussFirstDerivative(cur_time - param.dt);
 
     Vector y = u_1; y *= 2.0; y -= u_2;        // y = 2*u_1 - u_2
 
@@ -190,10 +193,11 @@ void ElasticWave2D::run_SEM_SRM()
     for (int i = 0; i < N; ++i) z0[i] = diagM[i] * y[i];
 
     Vector z1; z1.SetSize(N); S.Mult(u_1, z1); // z1 = S * u_1
+    Vector z2 = pf; z2 *= ric;                 // z2 = ric * pf
+    Vector z3 = mt; z3 *= gfd;                 // z3 = gfd * mt
 
-    Vector z2 = b; z2 *= r;                    // z2 = r * b
-
-    y = z1; y -= z2; y *= param.dt*param.dt;   // y = dt^2 * (S*u_1 - r*b)
+    // y = dt^2 * (S*u_1 - ric*pf - gfd*mt)
+    y = z1; y -= z2; y -= z3; y *= param.dt*param.dt;
 
     Vector RHS = z0; RHS -= y;                 // RHS = M*(2*u_1-u_2) - dt^2*(S*u_1-r*b)
 

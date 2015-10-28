@@ -34,7 +34,7 @@ void Source::AddOptions(OptionsParser& args)
   args.AddOption(&Myy, "-myy", "--moment-tensor-yy", "yy-component of a moment tensor source");
   args.AddOption(&Myz, "-myz", "--moment-tensor-yz", "yz-component of a moment tensor source");
   args.AddOption(&Mzz, "-mzz", "--moment-tensor-zz", "zz-component of a moment tensor source");
-  args.AddOption(&type, "-st", "--source-type", "Type of spatial source distribution (0 delta, 1 gauss)");
+  args.AddOption(&type, "-st", "--source-type", "Type of spatial source distribution (0 delta, 1 gauss, 2 plane)");
 }
 
 
