@@ -8,6 +8,8 @@
 using namespace std;
 using namespace mfem;
 
+//#define OUTPUT_MASS_MATRIX
+
 double mass_damp_weight(const mfem::Vector& point, const Parameters& param);
 double stif_damp_weight(const mfem::Vector& point, const Parameters& param);
 
@@ -81,14 +83,16 @@ void ElasticWave2D::run_SEM_SRM()
   cout << "done. Time = " << chrono.RealTime() << " sec" << endl;
   chrono.Clear();
 
-//  {
-//    cout << "Output mass matrix..." << flush;
-//    ofstream mout("mass_mat.dat");
-//    mass.PrintMatlab(mout);
-//    cout << "M.nnz = " << M.NumNonZeroElems() << endl;
-//    cout << "done. Time = " << chrono.RealTime() << " sec" << endl;
-//    chrono.Clear();
-//  }
+#if defined(OUTPUT_MASS_MATRIX)
+  {
+    cout << "Output mass matrix..." << flush;
+    ofstream mout("mass_mat.dat");
+    mass.PrintMatlab(mout);
+    cout << "M.nnz = " << M.NumNonZeroElems() << endl;
+    cout << "done. Time = " << chrono.RealTime() << " sec" << endl;
+    chrono.Clear();
+  }
+#endif
 
   cout << "Damp matrix..." << flush;
   VectorMassIntegrator *damp_int = new VectorMassIntegrator(rho_damp_coef);

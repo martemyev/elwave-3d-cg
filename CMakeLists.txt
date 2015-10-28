@@ -12,12 +12,12 @@ set(MFEM_DIR "/u/artemyev/projects/mfem/")
 include_directories("${MFEM_DIR}")
 link_directories("${MFEM_DIR}/build")
 
-file(GLOB SRC_LIST "${PROJECT_SOURCE_DIR}/*.cpp")
-file(GLOB HDR_LIST "${PROJECT_SOURCE_DIR}/*.hpp")
+file(GLOB SRC_LIST "${PROJECT_SOURCE_DIR}/src/*.cpp")
+file(GLOB HDR_LIST "${PROJECT_SOURCE_DIR}/src/*.hpp")
 
 configure_file(
   "${PROJECT_SOURCE_DIR}/config.hpp.in"
-  "${PROJECT_SOURCE_DIR}/config.hpp")
+  "${PROJECT_SOURCE_DIR}/src/config.hpp")
 
 add_executable(${PROJECT_NAME} ${SRC_LIST} ${HDR_LIST})
 target_link_libraries(${PROJECT_NAME} mfem rt)
