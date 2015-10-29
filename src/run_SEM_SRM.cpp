@@ -133,7 +133,7 @@ void ElasticWave2D::run_SEM_SRM()
     }
     case Source::PLANE_WAVE:
     {
-      PlaneWaveSource plane_wave_source(dim, param.source);
+      PlaneWaveSource plane_wave_source(dim, param);
       VectorDomainLFIntegrator *plane_wave_int =
           new VectorDomainLFIntegrator(plane_wave_source);
       plane_wave_int->SetIntRule(&hex_GLL);
@@ -236,7 +236,7 @@ void ElasticWave2D::run_SEM_SRM()
     // (M+D)*x_0 = M*(2*x_1-x_2) - dt^2*(S*x_1-r*b) + D*x_2
     for (int i = 0; i < N; ++i) u_0[i] = RHS[i] / (diagM[i]+diagD[i]);
 
-    // velocity
+    // velocity: v = du/dt, we use the central difference here
     v_1  = u_0;
     v_1 -= u_2;
     v_1 /= 2.0*param.dt;

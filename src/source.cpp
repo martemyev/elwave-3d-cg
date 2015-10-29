@@ -1,5 +1,6 @@
 #include "source.hpp"
 #include "utilities.hpp"
+#include "parameters.hpp"
 
 using namespace std;
 using namespace mfem;
@@ -55,6 +56,10 @@ void Source::check_and_update_parameters()
     type = PLANE_WAVE;
   else
     MFEM_ABORT("Unknown source type: " + string(type_string));
+
+  MFEM_VERIFY(!strcmp(spatial_function, "delta") ||
+              !strcmp(spatial_function, "gauss"), "Unknown spatial function of "
+              "the source: " + string(spatial_function));
 }
 
 
@@ -99,12 +104,24 @@ void Source::MomentTensorSource(const Vector &x, Vector &f) const
 
 
 
-void Source::PlaneWaveSource(const Vector &x, Vector &f) const
+void Source::PlaneWaveSource(const Parameters& param, const Vector &x,
+                             Vector &f) const
 {
-  const double py = x(1); // y-coordinate of the point
+  const double px = x(0); // coordinates of the point
+  const double py = x(1);
+  const double pz = x(2);
+
+  const double X0 = 0.0;
+  const double Z0 = 0.0;
+  const double X1 = param.sx;
+  const double Z1 = param.sz;
+  const double layer = param.damp_layer;
+  const double tol = FLOAT_NUMBERS_EQUALITY_TOLERANCE;
 
   f = 0.0;
-  if (fabs(py - location(1)) < FLOAT_NUMBERS_EQUALITY_TOLERANCE)
+  if (fabs(py - location(1)) < tol &&
+      (px-layer+tol > X0 && px+layer-tol < X1 &&
+       pz-layer+tol > Z0 && pz+layer-tol < Z1))
     f(1) = 1.0;
 }
 
@@ -211,10 +228,9 @@ void MomentTensorSource::Eval(Vector &V, ElementTransformation &T,
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-PlaneWaveSource::PlaneWaveSource(int dim, const Source& s)
+PlaneWaveSource::PlaneWaveSource(int dim, const Parameters& p)
   : VectorCoefficient(dim)
-  , source(s)
-  ,
+  , param(p)
 { }
 
 
@@ -225,5 +241,5 @@ void PlaneWaveSource::Eval(Vector &V, ElementTransformation &T,
   Vector transip;
   T.Transform(ip, transip);
   V.SetSize(vdim);
-  source.PlaneWaveSource(transip, V);
+  param.source.PlaneWaveSource(param, transip, V);
 }

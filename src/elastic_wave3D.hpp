@@ -12,7 +12,7 @@ class Source;
 
 
 /**
- * 3D elastic wave running by finite elements or spectral elements (both are
+ * 3D elastic wave run by finite elements or spectral elements (both are
  * continuous Galerkin approaches).
  */
 class ElasticWave2D

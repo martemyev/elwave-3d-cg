@@ -4,10 +4,12 @@
 #include "config.hpp"
 #include "mfem.hpp"
 
+class Parameters;
+
 
 
 /**
- * Parameters describing the source, and related functions.
+ * Parameters describing the source and related functions.
  */
 class Source
 {
@@ -37,7 +39,8 @@ public:
   double GaussFirstDerivative(double t) const;
   void PointForce(const mfem::Vector& x, mfem::Vector& f) const;
   void MomentTensorSource(const mfem::Vector& x, mfem::Vector& f) const;
-  void PlaneWaveSource(const mfem::Vector& x, mfem::Vector& f) const;
+  void PlaneWaveSource(const Parameters& param, const mfem::Vector& x,
+                       mfem::Vector& f) const;
 
 private:
   void DeltaPointForce(const mfem::Vector& x, mfem::Vector& f) const;
@@ -90,14 +93,14 @@ private:
 class PlaneWaveSource: public mfem::VectorCoefficient
 {
 public:
-  PlaneWaveSource(int dim, const Source& s);
+  PlaneWaveSource(int dim, const Parameters& p);
   ~PlaneWaveSource() { }
 
   void Eval(mfem::Vector &V, mfem::ElementTransformation &T,
             const mfem::IntegrationPoint &ip);
 
 private:
-  const Source& source;
+  const Parameters& param;
 };
 
 #endif // SOURCE_HPP
