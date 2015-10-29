@@ -11,62 +11,28 @@ using namespace mfem;
 
 
 
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
-VectorPointForce::VectorPointForce(int dim, const Source& s)
-  : VectorCoefficient(dim)
-  , source(s)
-{ }
-
-void VectorPointForce::Eval(Vector &V, ElementTransformation &T,
-                            const IntegrationPoint &ip)
-{
-  Vector transip;
-  T.Transform(ip, transip);
-  V.SetSize(vdim);
-  source.PointForce(transip, V);
-}
-
-
-
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
-MomentTensorSource::MomentTensorSource(int dim, const Source& s)
-  : VectorCoefficient(dim)
-  , source(s)
-{ }
-
-void MomentTensorSource::Eval(Vector &V, ElementTransformation &T,
-                              const IntegrationPoint &ip)
-{
-  Vector transip;
-  T.Transform(ip, transip);
-  V.SetSize(vdim);
-  source.MomentTensorSource(transip, V);
-}
-
-
-
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
 ElasticWave2D::ElasticWave2D(const Parameters &_param)
   : param(_param)
 { }
 
-ElasticWave2D::~ElasticWave2D() { }
+
 
 void ElasticWave2D::run()
 {
-  if (param.method == 0) // FEM
+  if (!strcmp(param.method, "fem") || !strcmp(param.method, "FEM"))
     run_FEM_ALID();
-  else if (param.method == 1) // SEM
+  else if (!strcmp(param.method, "sem") || !strcmp(param.method, "SEM"))
     run_SEM_SRM();
-  else MFEM_ABORT("Unknown method to be used");
+  else
+    MFEM_ABORT("Unknown method to be used: " + string(param.method));
 }
 
 
 
 //------------------------------------------------------------------------------
+//
+// Auxiliary useful functions
+//
 //------------------------------------------------------------------------------
 Vector compute_function_at_point(double sx, double sy, double sz,
                                  int nx, int ny, int nz, const Mesh& mesh,
@@ -93,6 +59,8 @@ Vector compute_function_at_point(double sx, double sy, double sz,
   return values;
 }
 
+
+
 Vector compute_function_at_points(double sx, double sy, double sz,
                                   int nx, int ny, int nz, const Mesh& mesh,
                                   const vector<Vertex>& points,
@@ -113,6 +81,8 @@ Vector compute_function_at_points(double sx, double sy, double sz,
   }
   return U_at_points;
 }
+
+
 
 void output_snapshots(int time_step, const string& snapshot_filebase,
                       const Parameters& param, const GridFunction& U,
@@ -153,6 +123,8 @@ void output_snapshots(int time_step, const string& snapshot_filebase,
                      param.ny, param.nz, v_x, v_y, v_z);
   }
 }
+
+
 
 void output_seismograms(const Parameters& param, const Mesh& mesh,
                         const GridFunction &U, const GridFunction &V,

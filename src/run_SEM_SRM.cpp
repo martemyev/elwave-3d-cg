@@ -108,21 +108,42 @@ void ElasticWave2D::run_SEM_SRM()
   chrono.Clear();
 
   cout << "RHS vector... " << flush;
-  VectorPointForce vector_point_force(dim, param.source);
-  VectorDomainLFIntegrator *point_force_int = new VectorDomainLFIntegrator(vector_point_force);
-  point_force_int->SetIntRule(&hex_GLL);
-  LinearForm pf(&fespace);
-  pf.AddDomainIntegrator(point_force_int);
-  pf.Assemble();
-  cout << "||pf||_L2 = " << pf.Norml2() << " ";
-
-  MomentTensorSource momemt_tensor_source(dim, param.source);
-  VectorDomainLFIntegrator *moment_tensor_int = new VectorDomainLFIntegrator(momemt_tensor_source);
-  moment_tensor_int->SetIntRule(&hex_GLL);
-  LinearForm mt(&fespace);
-  mt.AddDomainIntegrator(moment_tensor_int);
-  mt.Assemble();
-  cout << "||mt||_L2 = " << mt.Norml2() << " ";
+  LinearForm b(&fespace);
+  switch (param.source.type)
+  {
+    case Source::POINT_FORCE:
+    {
+      VectorPointForce vector_point_force(dim, param.source);
+      VectorDomainLFIntegrator *point_force_int =
+          new VectorDomainLFIntegrator(vector_point_force);
+      point_force_int->SetIntRule(&hex_GLL);
+      b.AddDomainIntegrator(point_force_int);
+      b.Assemble();
+      break;
+    }
+    case Source::MOMENT_TENSOR:
+    {
+      MomentTensorSource momemt_tensor_source(dim, param.source);
+      VectorDomainLFIntegrator *moment_tensor_int =
+          new VectorDomainLFIntegrator(momemt_tensor_source);
+      moment_tensor_int->SetIntRule(&hex_GLL);
+      b.AddDomainIntegrator(moment_tensor_int);
+      b.Assemble();
+      break;
+    }
+    case Source::PLANE_WAVE:
+    {
+      PlaneWaveSource plane_wave_source(dim, param.source);
+      VectorDomainLFIntegrator *plane_wave_int =
+          new VectorDomainLFIntegrator(plane_wave_source);
+      plane_wave_int->SetIntRule(&hex_GLL);
+      b.AddDomainIntegrator(plane_wave_int);
+      b.Assemble();
+      break;
+    }
+    default: MFEM_ABORT("Unknown source type");
+  }
+  cout << "||b||_L2 = " << b.Norml2() << " ";
   cout << "done. Time = " << chrono.RealTime() << " sec" << endl;
   chrono.Clear();
 
@@ -183,9 +204,12 @@ void ElasticWave2D::run_SEM_SRM()
   for (int time_step = 1; time_step <= n_time_steps; ++time_step)
   {
     const double cur_time = time_step * param.dt;
-
-    const double ric = param.source.Ricker(cur_time - param.dt);
-    const double gfd = param.source.GaussFirstDerivative(cur_time - param.dt);
+    double time_val; // the value of the time-dependent part of the source
+    if (param.source.type == Source::POINT_FORCE ||
+        param.source.type == Source::PLANE_WAVE)
+      time_val = param.source.Ricker(cur_time - param.dt);
+    else if (param.source.type == Source::MOMENT_TENSOR)
+      time_val = param.source.GaussFirstDerivative(cur_time - param.dt);
 
     Vector y = u_1; y *= 2.0; y -= u_2;        // y = 2*u_1 - u_2
 
@@ -193,16 +217,22 @@ void ElasticWave2D::run_SEM_SRM()
     for (int i = 0; i < N; ++i) z0[i] = diagM[i] * y[i];
 
     Vector z1; z1.SetSize(N); S.Mult(u_1, z1); // z1 = S * u_1
-    Vector z2 = pf; z2 *= ric;                 // z2 = ric * pf
-    Vector z3 = mt; z3 *= gfd;                 // z3 = gfd * mt
+    Vector z2 = b; z2 *= time_val;             // z2 = timeval*source
 
-    // y = dt^2 * (S*u_1 - ric*pf - gfd*mt)
-    y = z1; y -= z2; y -= z3; y *= param.dt*param.dt;
+    // y = dt^2 * (S*u_1 - timeval*source), where it can be
+    // y = dt^2 * (S*u_1 - ricker*pointforce) OR
+    // y = dt^2 * (S*u_1 - ricker*planewave)  OR
+    // y = dt^2 * (S*u_1 - gaussfirstderivative*momenttensor)
+    y = z1; y -= z2; y *= param.dt*param.dt;
 
-    Vector RHS = z0; RHS -= y;                 // RHS = M*(2*u_1-u_2) - dt^2*(S*u_1-r*b)
+    // RHS = M*(2*u_1-u_2) - dt^2*(S*u_1-timeval*source)
+    Vector RHS = z0; RHS -= y;
 
     for (int i = 0; i < N; ++i) y[i] = diagD[i] * u_2[i]; // y = D * u_2
-    RHS += y;                                             // RHS = M*(2*u_1-u_2) - dt^2*(S*u_1-r*b) + D*u_2
+
+    // RHS = M*(2*u_1-u_2) - dt^2*(S*u_1-timeval*source) + D*u_2
+    RHS += y;
+
     // (M+D)*x_0 = M*(2*x_1-x_2) - dt^2*(S*x_1-r*b) + D*x_2
     for (int i = 0; i < N; ++i) u_0[i] = RHS[i] / (diagM[i]+diagD[i]);
 

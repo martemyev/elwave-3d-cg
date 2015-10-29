@@ -12,6 +12,37 @@ class Source;
 
 
 /**
+ * 3D elastic wave running by finite elements or spectral elements (both are
+ * continuous Galerkin approaches).
+ */
+class ElasticWave2D
+{
+public:
+  ElasticWave2D(const Parameters& _param);
+  ~ElasticWave2D() { }
+
+  void run();
+
+private:
+  const Parameters& param;
+
+  /**
+   * Finite Element Method (FEM) (non-diagonal mass matrix) with Absorbing
+   * Layers by Increasing Damping (ALID) for implementation of absorbing
+   * boundary condition.
+   */
+  void run_FEM_ALID();
+
+  /**
+   * Spectral Element Method (SEM) (diagonal mass matrix) with Stiffness
+   * Reduction Method (SRM) for implementation of absorbing boundary condition.
+   */
+  void run_SEM_SRM();
+};
+
+
+
+/**
  * Cell-wise constant coefficient.
  */
 class CWConstCoefficient : public mfem::Coefficient
@@ -66,70 +97,6 @@ public:
 protected:
   double(*Function)(const mfem::Vector&, const Parameters&);
   const Parameters& param;
-};
-
-
-
-/**
- * Implementation of a vector point force as a component of a source term.
- */
-class VectorPointForce: public mfem::VectorCoefficient
-{
-public:
-  VectorPointForce(int dim, const Source& s);
-  ~VectorPointForce() { }
-
-  void Eval(mfem::Vector &V, mfem::ElementTransformation &T,
-            const mfem::IntegrationPoint &ip);
-
-private:
-  const Source& source;
-};
-
-
-
-/**
- * Implementation of a moment tensor density as a component of a source term.
- */
-class MomentTensorSource: public mfem::VectorCoefficient
-{
-public:
-  MomentTensorSource(int dim, const Source& s);
-  ~MomentTensorSource() { }
-
-  void Eval(mfem::Vector &V, mfem::ElementTransformation &T,
-            const mfem::IntegrationPoint &ip);
-
-private:
-  const Source& source;
-};
-
-
-
-
-class ElasticWave2D
-{
-public:
-  ElasticWave2D(const Parameters& _param);
-  ~ElasticWave2D();
-
-  void run();
-
-private:
-  const Parameters& param;
-
-  /**
-   * Finite Element Method (FEM) (non-diagonal mass matrix) with Absorbing
-   * Layers by Increasing Damping (ALID) for implementation of absorbing
-   * boundary condition.
-   */
-  void run_FEM_ALID();
-
-  /**
-   * Spectral Element Method (SEM) (diagonal mass matrix) with Stiffness
-   * Reduction Method (SRM) for implementation of absorbing boundary condition.
-   */
-  void run_SEM_SRM();
 };
 
 

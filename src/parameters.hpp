@@ -34,10 +34,8 @@ public:
   const char *vpfile;
   const char *vsfile;
 
-  /**
-   * arrays of values describing media properties
-   */
-  double *rho_array, *vp_array, *vs_array;
+  double *rho_array, *vp_array, *vs_array; ///< arrays of values describing
+                                           ///< media properties
 
   double damp_layer; ///< thickness of a damping layer
   double damp_power; ///< power in damping coefficient functions
@@ -48,7 +46,7 @@ public:
   int step_snap; ///< time step for outputting snapshots (every *th time step)
   int snapshot_format; ///< 0 - binary, 1 - VTS
 
-  int method; ///< 0 - FEM, 1 - SEM
+  const char* method; ///< method to be used - FEM or SEM
 
   const char *extra_string; ///< for naming output results
 

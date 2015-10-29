@@ -31,7 +31,7 @@ Parameters::Parameters()
   , topsurf(1)
   , source()
   , step_snap(1000)
-  , method(1)
+  , method("sem")
   , extra_string("")
   , receivers_file(DEFAULT_FILE_NAME)
   , sets_of_receivers()
@@ -80,7 +80,7 @@ void Parameters::init(int argc, char **argv)
   args.AddOption(&step_snap, "-step-snap", "--step-snap", "Time step for outputting snapshots");
   args.AddOption(&snapshot_format, "-snap-format", "--snapshot-format", "Format of snapshots (0 binary, 1 VTS)");
 
-  args.AddOption(&method, "-method", "--method", "0 - FEM, 1 - SEM");
+  args.AddOption(&method, "-method", "--method", "Finite elements (fem) or spectral elements (sem)");
 
   args.AddOption(&extra_string, "-extra", "--extra", "Extra string for naming output files");
 
@@ -93,6 +93,8 @@ void Parameters::init(int argc, char **argv)
     throw 1;
   }
   args.PrintOptions(cout);
+
+  source.check_and_update_parameters();
 
   const int n_elements = nx*ny*nz;
 
