@@ -7,7 +7,6 @@
 #include <vector>
 
 class Parameters;
-class Source;
 
 
 
@@ -18,7 +17,7 @@ class Source;
 class ElasticWave2D
 {
 public:
-  ElasticWave2D(const Parameters& _param);
+  ElasticWave2D(const Parameters& p) : param(p) { }
   ~ElasticWave2D() { }
 
   void run();

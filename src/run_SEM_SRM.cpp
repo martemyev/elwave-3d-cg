@@ -21,12 +21,12 @@ void ElasticWave2D::run_SEM_SRM()
 
   chrono.Start();
   cout << "Mesh and FE space generation..." << flush;
-  bool generate_edges = 1;
-  Mesh mesh(param.nx, param.ny, param.nz, Element::HEXAHEDRON, generate_edges,
-            param.sx, param.sy, param.sz);
+  const bool generate_edges = true;
+  Mesh mesh(param.grid.nx, param.grid.ny, param.grid.nz, Element::HEXAHEDRON,
+            generate_edges, param.grid.sx, param.grid.sy, param.grid.sz);
   const int dim = mesh.Dimension();
   MFEM_VERIFY(dim == SPACE_DIM, "Unexpected mesh dimension");
-  const int n_elements = param.nx*param.ny*param.nz;
+  const int n_elements = param.grid.nx * param.grid.ny * param.grid.nz;
   MFEM_VERIFY(n_elements == mesh.GetNE(), "Unexpected number of mesh elements");
 
   FiniteElementCollection *fec = new H1_FECollection(param.order, dim);
@@ -41,9 +41,9 @@ void ElasticWave2D::run_SEM_SRM()
 
   for (int i = 0; i < n_elements; ++i)
   {
-    const double rho = param.rho_array[i];
-    const double vp  = param.vp_array[i];
-    const double vs  = param.vs_array[i];
+    const double rho = param.media.rho_array[i];
+    const double vp  = param.media.vp_array[i];
+    const double vs  = param.media.vs_array[i];
 
     MFEM_VERIFY(rho > 1.0 && vp > 1.0 && vs > 1.0, "Incorrect media properties "
                 "arrays");
@@ -52,10 +52,12 @@ void ElasticWave2D::run_SEM_SRM()
     mu_array[i]      = rho*vs*vs;
   }
 
-  CWConstCoefficient rho_coef(param.rho_array, 0);
+  const bool own_array = false;
+  CWConstCoefficient rho_coef(param.media.rho_array, own_array);
   CWFunctionCoefficient lambda_coef  (stif_damp_weight, param, lambda_array);
   CWFunctionCoefficient mu_coef      (stif_damp_weight, param, mu_array);
-  CWFunctionCoefficient rho_damp_coef(mass_damp_weight, param, param.rho_array, 0);
+  CWFunctionCoefficient rho_damp_coef(mass_damp_weight, param,
+                                      param.media.rho_array, own_array);
 
   IntegrationRule segment_GLL;
   create_segment_GLL_rule(param.order, segment_GLL);
@@ -109,41 +111,38 @@ void ElasticWave2D::run_SEM_SRM()
 
   cout << "RHS vector... " << flush;
   LinearForm b(&fespace);
-  switch (param.source.type)
+  if (param.source.plane_wave)
   {
-    case Source::POINT_FORCE:
+    PlaneWaveSource plane_wave_source(dim, param);
+    VectorDomainLFIntegrator *plane_wave_int =
+        new VectorDomainLFIntegrator(plane_wave_source);
+    plane_wave_int->SetIntRule(&hex_GLL);
+    b.AddDomainIntegrator(plane_wave_int);
+    b.Assemble();
+  }
+  else
+  {
+    if (!strcmp(param.source.type, "pointforce"))
     {
-      VectorPointForce vector_point_force(dim, param.source);
+      VectorPointForce vector_point_force(dim, param);
       VectorDomainLFIntegrator *point_force_int =
           new VectorDomainLFIntegrator(vector_point_force);
       point_force_int->SetIntRule(&hex_GLL);
       b.AddDomainIntegrator(point_force_int);
       b.Assemble();
-      break;
     }
-    case Source::MOMENT_TENSOR:
+    else if (!strcmp(param.source.type, "momenttensor"))
     {
-      MomentTensorSource momemt_tensor_source(dim, param.source);
+      MomentTensorSource momemt_tensor_source(dim, param);
       VectorDomainLFIntegrator *moment_tensor_int =
           new VectorDomainLFIntegrator(momemt_tensor_source);
       moment_tensor_int->SetIntRule(&hex_GLL);
       b.AddDomainIntegrator(moment_tensor_int);
       b.Assemble();
-      break;
     }
-    case Source::PLANE_WAVE:
-    {
-      PlaneWaveSource plane_wave_source(dim, param);
-      VectorDomainLFIntegrator *plane_wave_int =
-          new VectorDomainLFIntegrator(plane_wave_source);
-      plane_wave_int->SetIntRule(&hex_GLL);
-      b.AddDomainIntegrator(plane_wave_int);
-      b.Assemble();
-      break;
-    }
-    default: MFEM_ABORT("Unknown source type");
+    else MFEM_ABORT("Unknown source type: " + string(param.source.type));
   }
-  cout << "||b||_L2 = " << b.Norml2() << " ";
+  cout << "||b||_L2 = " << b.Norml2() << endl;
   cout << "done. Time = " << chrono.RealTime() << " sec" << endl;
   chrono.Clear();
 
@@ -205,11 +204,11 @@ void ElasticWave2D::run_SEM_SRM()
   {
     const double cur_time = time_step * param.dt;
     double time_val; // the value of the time-dependent part of the source
-    if (param.source.type == Source::POINT_FORCE ||
-        param.source.type == Source::PLANE_WAVE)
-      time_val = param.source.Ricker(cur_time - param.dt);
-    else if (param.source.type == Source::MOMENT_TENSOR)
-      time_val = param.source.GaussFirstDerivative(cur_time - param.dt);
+    if (!strcmp(param.source.type, "pointforce"))
+      time_val = RickerWavelet(param.source, cur_time - param.dt);
+    else if (!strcmp(param.source.type, "momenttensor"))
+      time_val = GaussFirstDerivative(param.source, cur_time - param.dt);
+    else MFEM_ABORT("Unknown source type: " + string(param.source.type));
 
     Vector y = u_1; y *= 2.0; y -= u_2;        // y = 2*u_1 - u_2
 
@@ -221,7 +220,6 @@ void ElasticWave2D::run_SEM_SRM()
 
     // y = dt^2 * (S*u_1 - timeval*source), where it can be
     // y = dt^2 * (S*u_1 - ricker*pointforce) OR
-    // y = dt^2 * (S*u_1 - ricker*planewave)  OR
     // y = dt^2 * (S*u_1 - gaussfirstderivative*momenttensor)
     y = z1; y -= z2; y *= param.dt*param.dt;
 
@@ -270,17 +268,21 @@ double mass_damp_weight(const Vector& point, const Parameters& param)
   const double x = point(0);
   const double y = point(1);
   const double z = point(2);
-  bool left = true, right = true, bottom = true, front = true, back = true;
-  bool top = (param.topsurf == 0 ? true : false);
+  const bool left   = (!strcmp(param.bc.left,   "abs") ? true : false);
+  const bool right  = (!strcmp(param.bc.right,  "abs") ? true : false);
+  const bool bottom = (!strcmp(param.bc.bottom, "abs") ? true : false);
+  const bool top    = (!strcmp(param.bc.top,    "abs") ? true : false);
+  const bool front  = (!strcmp(param.bc.front,  "abs") ? true : false);
+  const bool back   = (!strcmp(param.bc.back,   "abs") ? true : false);
 
   const double X0 = 0.0;
-  const double X1 = param.sx;
   const double Y0 = 0.0;
-  const double Y1 = param.sy;
   const double Z0 = 0.0;
-  const double Z1 = param.sz;
-  const double layer = param.damp_layer;
-  const double power = param.damp_power;
+  const double X1 = param.grid.sx;
+  const double Y1 = param.grid.sy;
+  const double Z1 = param.grid.sz;
+  const double layer = param.bc.damp_layer;
+  const double power = param.bc.damp_power;
 
   // coef for the mass matrix in a damping region is computed
   // C_M = C_Mmax * x^p, where
@@ -315,17 +317,21 @@ double stif_damp_weight(const Vector& point, const Parameters& param)
   const double x = point(0);
   const double y = point(1);
   const double z = point(2);
-  bool left = true, right = true, bottom = true, front = true, back = true;
-  bool top = (param.topsurf == 0 ? true : false);
+  const bool left   = (!strcmp(param.bc.left,   "abs") ? true : false);
+  const bool right  = (!strcmp(param.bc.right,  "abs") ? true : false);
+  const bool bottom = (!strcmp(param.bc.bottom, "abs") ? true : false);
+  const bool top    = (!strcmp(param.bc.top,    "abs") ? true : false);
+  const bool front  = (!strcmp(param.bc.front,  "abs") ? true : false);
+  const bool back   = (!strcmp(param.bc.back,   "abs") ? true : false);
 
   const double X0 = 0.0;
-  const double X1 = param.sx;
   const double Y0 = 0.0;
-  const double Y1 = param.sy;
   const double Z0 = 0.0;
-  const double Z1 = param.sz;
-  const double layer = param.damp_layer;
-  const double power = param.damp_power; //+1;
+  const double X1 = param.grid.sx;
+  const double Y1 = param.grid.sy;
+  const double Z1 = param.grid.sz;
+  const double layer = param.bc.damp_layer;
+  const double power = param.bc.damp_power+1;
   const double C0 = log(100.0);
 
   // coef for the stif matrix in a damping region is computed
@@ -359,29 +365,33 @@ double stif_damp_weight(const Vector& point, const Parameters& param)
 
 void show_SRM_damp_weights(const Parameters& param)
 {
-  Vector mass_damp((param.nx+1)*(param.ny+1)*(param.nz+1));
-  Vector stif_damp((param.nx+1)*(param.ny+1)*(param.nz+1));
+  const int nx = param.grid.nx;
+  const int ny = param.grid.ny;
+  const int nz = param.grid.nz;
 
-  const double hx = param.sx / param.nx;
-  const double hy = param.sy / param.ny;
-  const double hz = param.sz / param.nz;
+  Vector mass_damp((nx+1)*(ny+1)*(nz+1));
+  Vector stif_damp((nx+1)*(ny+1)*(nz+1));
 
-  for (int iz = 0; iz < param.nz+1; ++iz)
+  const double hx = param.grid.sx / nx;
+  const double hy = param.grid.sy / ny;
+  const double hz = param.grid.sz / nz;
+
+  for (int iz = 0; iz < nz+1; ++iz)
   {
-    const double z = (iz == param.nz ? param.sz : iz*hz);
-    for (int iy = 0; iy < param.ny+1; ++iy)
+    const double z = (iz == nz ? param.grid.sz : iz*hz);
+    for (int iy = 0; iy < ny+1; ++iy)
     {
-      const double y = (iy == param.ny ? param.sy : iy*hy);
-      for (int ix = 0; ix < param.nx+1; ++ix)
+      const double y = (iy == ny ? param.grid.sy : iy*hy);
+      for (int ix = 0; ix < nx+1; ++ix)
       {
-        const double x = (ix == param.nx ? param.sx : ix*hx);
+        const double x = (ix == nx ? param.grid.sx : ix*hx);
         Vector point(SPACE_DIM);
         point(0) = x;
         point(1) = y;
         point(2) = z;
         const double md = mass_damp_weight(point, param);
         const double sd = stif_damp_weight(point, param);
-        const int index = iz*(param.nx+1)*(param.ny+1) + iy*(param.nx+1) + ix;
+        const int index = iz*(nx+1)*(ny+1) + iy*(nx+1) + ix;
         mass_damp(index) = md;
         stif_damp(index) = sd;
       }
@@ -389,11 +399,11 @@ void show_SRM_damp_weights(const Parameters& param)
   }
 
   string fname = "mass_damping_weights.vts";
-  write_vts_scalar(fname, "mass_weights", param.sx, param.sy, param.sz,
-                   param.nx, param.ny, param.nz, mass_damp);
+  write_vts_scalar(fname, "mass_weights", param.grid.sx, param.grid.sy,
+                   param.grid.sz, nx, ny, nz, mass_damp);
 
   fname = "stif_damping_weights.vts";
-  write_vts_scalar(fname, "stif_weights", param.sx, param.sy, param.sz,
-                   param.nx, param.ny, param.nz, stif_damp);
+  write_vts_scalar(fname, "stif_weights", param.grid.sx, param.grid.sy,
+                   param.grid.sz, nx, ny, nz, stif_damp);
 }
 

@@ -11,12 +11,6 @@ using namespace mfem;
 
 
 
-ElasticWave2D::ElasticWave2D(const Parameters &_param)
-  : param(_param)
-{ }
-
-
-
 void ElasticWave2D::run()
 {
   if (!strcmp(param.method, "fem") || !strcmp(param.method, "FEM"))
@@ -116,11 +110,11 @@ void output_snapshots(int time_step, const string& snapshot_filebase,
   else // VTS format
   {
     fname = snapshot_filebase + "_U_t" + tstep + ".vts";
-    write_vts_vector(fname, "U", param.sx, param.sy, param.sz, param.nx,
-                     param.ny, param.nz, u_x, u_y, u_z);
+    write_vts_vector(fname, "U", param.grid.sx, param.grid.sy, param.grid.sz,
+                     param.grid.nx, param.grid.ny, param.grid.nz, u_x, u_y, u_z);
     fname = snapshot_filebase + "_V_t" + tstep + ".vts";
-    write_vts_vector(fname, "V", param.sx, param.sy, param.sz, param.nx,
-                     param.ny, param.nz, v_x, v_y, v_z);
+    write_vts_vector(fname, "V", param.grid.sx, param.grid.sy, param.grid.sz,
+                     param.grid.nx, param.grid.ny, param.grid.nz, v_x, v_y, v_z);
   }
 }
 
@@ -143,14 +137,14 @@ void output_seismograms(const Parameters& param, const Mesh& mesh,
 
     const ReceiversSet *rec_set = param.sets_of_receivers[rec];
     // displacement at the receivers
-    const Vector u = compute_function_at_points(param.sx, param.sy, param.sz,
-                                                param.nx, param.ny, param.nz, mesh,
+    const Vector u = compute_function_at_points(param.grid.sx, param.grid.sy, param.grid.sz,
+                                                param.grid.nx, param.grid.ny, param.grid.nz, mesh,
                                                 rec_set->get_receivers(),
                                                 rec_set->get_cells_containing_receivers(),
                                                 U);
     // velocity at the receivers
-    const Vector v = compute_function_at_points(param.sx, param.sy, param.sz,
-                                                param.nx, param.ny, param.nz, mesh,
+    const Vector v = compute_function_at_points(param.grid.sx, param.grid.sy, param.grid.sz,
+                                                param.grid.nx, param.grid.ny, param.grid.nz, mesh,
                                                 rec_set->get_receivers(),
                                                 rec_set->get_cells_containing_receivers(),
                                                 V);
