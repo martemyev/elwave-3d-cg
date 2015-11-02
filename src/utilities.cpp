@@ -25,7 +25,7 @@ void read_binary(const char *filename, int n_values, double *values)
   int length = in.tellg(); // total length of the file in bytes
   int size_value = length / n_values; // size (in bytes) of one value
 
-  MFEM_VERIFY(length % n_values != 0, "The number of bytes in the file '" +
+  MFEM_VERIFY(length % n_values == 0, "The number of bytes in the file '" +
               string(filename) + "' is not divisible by the number of elements "
               + d2s(n_values));
 

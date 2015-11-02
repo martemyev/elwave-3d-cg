@@ -1,6 +1,0 @@
-build
-*.user
-*~
-config.hpp
-.gitignore
-scripts/properties.bin

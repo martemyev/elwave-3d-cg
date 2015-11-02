@@ -2,8 +2,8 @@
 
 import struct
 
-prop_main  = 3500.0
-prop_layer = 2000.0
+prop_main  = 2500.0
+prop_layer = 2100.0
 
 # size of the domain
 sx = 1000.0
