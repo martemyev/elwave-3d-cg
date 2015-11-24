@@ -286,9 +286,9 @@ int find_element(double sx, double sy, double sz, int nx, int ny, int nz,
   // -------------> X
   // we can simplify the search of the element containing the given point:
 
-  int cellx = px * nx / (x1 - x0);
-  int celly = py * ny / (y1 - y0);
-  int cellz = pz * nz / (z1 - z0);
+  int cellx = (px-x0) * nx / (x1 - x0);
+  int celly = (py-y0) * ny / (y1 - y0);
+  int cellz = (pz-z0) * nz / (z1 - z0);
 
   if (cellx) --cellx;
   if (celly) --celly;
