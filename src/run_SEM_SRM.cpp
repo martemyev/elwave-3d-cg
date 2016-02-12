@@ -241,9 +241,6 @@ void ElasticWave2D::run_SEM_SRM()
     u_1 = u_0;
   }
 
-  delete[] seisV;
-  delete[] seisU;
-
   cout << "Time loop is over" << endl;
 
   delete fec;

@@ -122,51 +122,59 @@ void output_snapshots(int time_step, const string& snapshot_filebase,
 
 void output_seismograms(const Parameters& param, const Mesh& mesh,
                         const GridFunction &U, const GridFunction &V,
-                        ofstream *seisU, ofstream *seisV)
+                        vector<ofstream> &seisU, vector<ofstream> &seisV)
 {
   // for each set of receivers
   for (size_t rec = 0; rec < param.sets_of_receivers.size(); ++rec)
   {
-    for (int c = 0; c < N_ELAST_COMPONENTS; ++c)
-    {
-      MFEM_ASSERT(seisU[rec*N_ELAST_COMPONENTS+c].is_open(), "The stream for "
-                  "writing displacement seismograms is not open");
-      MFEM_ASSERT(seisV[rec*N_ELAST_COMPONENTS+c].is_open(), "The stream for "
-                  "writing velocity seismograms is not open");
-    }
-
     const ReceiversSet *rec_set = param.sets_of_receivers[rec];
-    // displacement at the receivers
-    const Vector u = compute_function_at_points(param.grid.sx, param.grid.sy, param.grid.sz,
-                                                param.grid.nx, param.grid.ny, param.grid.nz, mesh,
-                                                rec_set->get_receivers(),
-                                                rec_set->get_cells_containing_receivers(),
-                                                U);
-    // velocity at the receivers
-    const Vector v = compute_function_at_points(param.grid.sx, param.grid.sy, param.grid.sz,
-                                                param.grid.nx, param.grid.ny, param.grid.nz, mesh,
-                                                rec_set->get_receivers(),
-                                                rec_set->get_cells_containing_receivers(),
-                                                V);
+    const std::string variable = rec_set->get_variable();
 
-    MFEM_ASSERT(u.Size() == N_ELAST_COMPONENTS*rec_set->n_receivers() &&
-                u.Size() == v.Size(), "Sizes mismatch");
-
-    float val;
-    for (int i = 0; i < u.Size(); i += N_ELAST_COMPONENTS)
-    {
-      for (int j = 0; j < N_ELAST_COMPONENTS; ++j)
-      {
-        val = u(i+j); // displacement
-        seisU[rec*N_ELAST_COMPONENTS + j].write(reinterpret_cast<char*>(&val),
-                                                sizeof(val));
-
-        val = v(i+j); // velocity
-        seisV[rec*N_ELAST_COMPONENTS + j].write(reinterpret_cast<char*>(&val),
-                                                sizeof(val));
+    // Displacement
+    if (variable.find("U") != std::string::npos) {
+      for (int c = 0; c < N_ELAST_COMPONENTS; ++c) {
+        MFEM_VERIFY(seisU[rec*N_ELAST_COMPONENTS+c].is_open(), "The stream for "
+                    "writing displacement seismograms is not open");
+      }
+      // displacement at the receivers
+      const Vector u =
+        compute_function_at_points(param.grid.sx, param.grid.sy, param.grid.sz,
+                                   param.grid.nx, param.grid.ny, param.grid.nz,
+                                   mesh, rec_set->get_receivers(),
+                                   rec_set->get_cells_containing_receivers(), U);
+      MFEM_ASSERT(u.Size() == N_ELAST_COMPONENTS*rec_set->n_receivers(),
+                  "Sizes mismatch");
+      for (int i = 0; i < u.Size(); i += N_ELAST_COMPONENTS) {
+        for (int j = 0; j < N_ELAST_COMPONENTS; ++j) {
+          float val = u(i+j); // displacement
+          seisU[rec*N_ELAST_COMPONENTS + j].write(reinterpret_cast<char*>(&val),
+                                                  sizeof(val));
+        }
       }
     }
-  }
+
+    // Particle velocity
+    if (variable.find("V") != std::string::npos) {
+      for (int c = 0; c < N_ELAST_COMPONENTS; ++c) {
+        MFEM_VERIFY(seisV[rec*N_ELAST_COMPONENTS+c].is_open(), "The stream for "
+                    "writing velocity seismograms is not open");
+      }
+      // velocity at the receivers
+      const Vector v =
+        compute_function_at_points(param.grid.sx, param.grid.sy, param.grid.sz,
+                                   param.grid.nx, param.grid.ny, param.grid.nz,
+                                   mesh, rec_set->get_receivers(),
+                                   rec_set->get_cells_containing_receivers(), V);
+      MFEM_ASSERT(v.Size() == N_ELAST_COMPONENTS*rec_set->n_receivers(),
+                  "Sizes mismatch");
+      for (int i = 0; i < u.Size(); i += N_ELAST_COMPONENTS) {
+        for (int j = 0; j < N_ELAST_COMPONENTS; ++j) {
+          float val = v(i+j); // velocity
+          seisV[rec*N_ELAST_COMPONENTS + j].write(reinterpret_cast<char*>(&val),
+                                                  sizeof(val));
+        }
+      }
+    }
 }
 
 

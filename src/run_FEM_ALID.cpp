@@ -165,25 +165,9 @@ void ElasticWave2D::run_FEM_ALID()
   const string method_name = "FEM_";
 
   cout << "Open seismograms files..." << flush;
-  int n_rec_sets = param.sets_of_receivers.size();
-  ofstream *seisU = new ofstream[N_ELAST_COMPONENTS*n_rec_sets]; // for displacement
-  ofstream *seisV = new ofstream[N_ELAST_COMPONENTS*n_rec_sets]; // for velocity
-  for (int r = 0; r < n_rec_sets; ++r)
-  {
-    const string desc = param.sets_of_receivers[r]->description();
-    for (int c = 0; c < N_ELAST_COMPONENTS; ++c)
-    {
-      string seismofile = method_name + param.extra_string + desc + "_u" + d2s(c) + ".bin";
-      seisU[r*N_ELAST_COMPONENTS + c].open(seismofile.c_str(), ios::binary);
-      MFEM_VERIFY(seisU[r*N_ELAST_COMPONENTS + c], "File '" + seismofile +
-                  "' can't be opened");
-
-      seismofile = method_name + param.extra_string + desc + "_v" + d2s(c) + ".bin";
-      seisV[r*N_ELAST_COMPONENTS + c].open(seismofile.c_str(), ios::binary);
-      MFEM_VERIFY(seisV[r*N_ELAST_COMPONENTS + c], "File '" + seismofile +
-                  "' can't be opened");
-    } // loop for components
-  } // loop for sets of receivers
+  vector<ofstream> seisU; // for displacement
+  vector<ofstream> seisV; // for velocity
+  open_seismo_outs();
   cout << "done. Time = " << chrono.RealTime() << " sec" << endl;
   chrono.Clear();
 
@@ -253,9 +237,6 @@ void ElasticWave2D::run_FEM_ALID()
     u_2 = u_1;
     u_1 = u_0;
   }
-
-  delete[] seisV;
-  delete[] seisU;
 
   cout << "Time loop is over" << endl;
 

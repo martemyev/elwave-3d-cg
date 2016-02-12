@@ -119,6 +119,7 @@ void output_snapshots(int time_step, const std::string& snapshot_filebase,
 
 void output_seismograms(const Parameters& param, const mfem::Mesh& mesh,
                         const mfem::GridFunction &U, const mfem::GridFunction &V,
-                        std::ofstream *seisU, std::ofstream *seisV);
+                        std::vector<std::ofstream> &seisU,
+                        std::vector<std::ofstream> &seisV);
 
 #endif // ELASTIC_WAVE3D_HPP
