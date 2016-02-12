@@ -108,10 +108,4 @@ protected:
 };
 
 
-
-
-int find_element(double sx, double sy, double sz, int nx, int ny, int nz,
-                 const mfem::Vertex &point, bool throw_exception);
-
-
 #endif // RECEIVERS_HPP

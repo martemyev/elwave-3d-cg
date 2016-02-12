@@ -175,7 +175,8 @@ void ElasticWave2D::run_SEM_SRM()
   const int n_time_steps = ceil(param.T / param.dt);
   const int tenth = 0.1 * n_time_steps;
 
-  const string snapshot_filebase = method_name + param.extra_string;
+  const string snapshot_filebase = SNAPSHOTS_DIR + method_name +
+                                   param.extra_string;
   const int N = u_0.Size();
 
   cout << "N time steps = " << n_time_steps
@@ -234,7 +235,7 @@ void ElasticWave2D::run_SEM_SRM()
            << " ||solution||_{L^2} = " << u_0.Norml2() << endl;
 
     if (time_step % param.step_snap == 0)
-      output_snapshots(time_step, snapshot_filebase, param, u_0, v_1);
+      output_snapshots(time_step, snapshot_filebase, param, u_0, v_1, mesh);
 
     if (time_step % param.step_seis == 0)
       output_seismograms(param, mesh, u_0, v_1, seisU, seisV);

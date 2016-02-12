@@ -2,6 +2,7 @@
 #include "GLL_quadrature.hpp"
 #include "parameters.hpp"
 #include "receivers.hpp"
+#include "snapshots.hpp"
 #include "utilities.hpp"
 
 using namespace std;
@@ -116,42 +117,73 @@ void open_seismo_outs(ofstream* &seisU, ofstream* &seisV,
 
 void output_snapshots(int time_step, const string& snapshot_filebase,
                       const Parameters& param, const GridFunction& U,
-                      const GridFunction& V)
+                      const GridFunction& V, const Mesh& mesh)
 {
-  Vector u_x, u_y, u_z, v_x, v_y, v_z;
-  U.GetNodalValues(u_x, 1); // components of displacement
-  U.GetNodalValues(u_y, 2);
-  U.GetNodalValues(u_z, 3);
-  V.GetNodalValues(v_x, 1); // components of velocity
-  V.GetNodalValues(v_y, 2);
-  V.GetNodalValues(v_z, 3);
+  for (size_t sn = 0; sn < param.sets_of_snapshots.size(); ++sn)
+  {
+    const SnapshotsSet *snap_set = param.sets_of_snapshots[sn];
+    const string desc = snap_set->description();
+    const string variable = snap_set->get_variable();
 
-  string tstep = d2s(time_step,0,0,0,6), fname;
-  if (param.snapshot_format == 0) // binary format
-  {
-    const int n_values = u_x.Size(); // the same for all components
-    fname = snapshot_filebase + "_Ux_t" + tstep + ".bin";
-    write_binary(fname.c_str(), n_values, u_x);
-    fname = snapshot_filebase + "_Uy_t" + tstep + ".bin";
-    write_binary(fname.c_str(), n_values, u_y);
-    fname = snapshot_filebase + "_Uz_t" + tstep + ".bin";
-    write_binary(fname.c_str(), n_values, u_z);
-    fname = snapshot_filebase + "_Vx_t" + tstep + ".bin";
-    write_binary(fname.c_str(), n_values, v_x);
-    fname = snapshot_filebase + "_Vy_t" + tstep + ".bin";
-    write_binary(fname.c_str(), n_values, v_y);
-    fname = snapshot_filebase + "_Vz_t" + tstep + ".bin";
-    write_binary(fname.c_str(), n_values, v_z);
+    if (variable.find("U") != string::npos) {
+      // displacement at the snapshot points
+      const Vector u =
+        compute_function_at_points(param.grid.sx, param.grid.sy, param.grid.sz,
+                                   param.grid.nx, param.grid.ny, param.grid.nz,
+                                   mesh, snap_set->get_snapshot_points(),
+                                   snap_set->get_cells_containing_snapshot_points(),
+                                   U);
+      snap_set->save_snapshot_vector(u, time_step, "U_CG", N_ELAST_COMPONENTS,
+                                     snapshot_filebase + desc);
+    }
+
+    if (variable.find("V") != string::npos) {
+      // particle velocity at the snapshot points
+      const Vector v =
+        compute_function_at_points(param.grid.sx, param.grid.sy, param.grid.sz,
+                                   param.grid.nx, param.grid.ny, param.grid.nz,
+                                   mesh, snap_set->get_snapshot_points(),
+                                   snap_set->get_cells_containing_snapshot_points(),
+                                   V);
+      snap_set->save_snapshot_vector(v, time_step, "V_CG", N_ELAST_COMPONENTS,
+                                     snapshot_filebase + desc);
+    }
   }
-  else // VTS format
-  {
-    fname = snapshot_filebase + "_U_t" + tstep + ".vts";
-    write_vts_vector(fname, "U", param.grid.sx, param.grid.sy, param.grid.sz,
-                     param.grid.nx, param.grid.ny, param.grid.nz, u_x, u_y, u_z);
-    fname = snapshot_filebase + "_V_t" + tstep + ".vts";
-    write_vts_vector(fname, "V", param.grid.sx, param.grid.sy, param.grid.sz,
-                     param.grid.nx, param.grid.ny, param.grid.nz, v_x, v_y, v_z);
-  }
+
+//  Vector u_x, u_y, u_z, v_x, v_y, v_z;
+//  U.GetNodalValues(u_x, 1); // components of displacement
+//  U.GetNodalValues(u_y, 2);
+//  U.GetNodalValues(u_z, 3);
+//  V.GetNodalValues(v_x, 1); // components of velocity
+//  V.GetNodalValues(v_y, 2);
+//  V.GetNodalValues(v_z, 3);
+
+//  string tstep = d2s(time_step,0,0,0,6), fname;
+//  if (param.snapshot_format == 0) // binary format
+//  {
+//    const int n_values = u_x.Size(); // the same for all components
+//    fname = snapshot_filebase + "_Ux_t" + tstep + ".bin";
+//    write_binary(fname.c_str(), n_values, u_x);
+//    fname = snapshot_filebase + "_Uy_t" + tstep + ".bin";
+//    write_binary(fname.c_str(), n_values, u_y);
+//    fname = snapshot_filebase + "_Uz_t" + tstep + ".bin";
+//    write_binary(fname.c_str(), n_values, u_z);
+//    fname = snapshot_filebase + "_Vx_t" + tstep + ".bin";
+//    write_binary(fname.c_str(), n_values, v_x);
+//    fname = snapshot_filebase + "_Vy_t" + tstep + ".bin";
+//    write_binary(fname.c_str(), n_values, v_y);
+//    fname = snapshot_filebase + "_Vz_t" + tstep + ".bin";
+//    write_binary(fname.c_str(), n_values, v_z);
+//  }
+//  else // VTS format
+//  {
+//    fname = snapshot_filebase + "_U_t" + tstep + ".vts";
+//    write_vts_vector(fname, "U", param.grid.sx, param.grid.sy, param.grid.sz,
+//                     param.grid.nx, param.grid.ny, param.grid.nz, u_x, u_y, u_z);
+//    fname = snapshot_filebase + "_V_t" + tstep + ".vts";
+//    write_vts_vector(fname, "V", param.grid.sx, param.grid.sy, param.grid.sz,
+//                     param.grid.nx, param.grid.ny, param.grid.nz, v_x, v_y, v_z);
+//  }
 }
 
 

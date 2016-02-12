@@ -119,7 +119,7 @@ void open_seismo_outs(std::ofstream* &seisU, std::ofstream* &seisV,
 
 void output_snapshots(int time_step, const std::string& snapshot_filebase,
                       const Parameters& param, const mfem::GridFunction& U,
-                      const mfem::GridFunction& V);
+                      const mfem::GridFunction& V, const mfem::Mesh& mesh);
 
 void output_seismograms(const Parameters& param, const mfem::Mesh& mesh,
                         const mfem::GridFunction &U, const mfem::GridFunction &V,

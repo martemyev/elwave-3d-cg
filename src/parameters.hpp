@@ -11,6 +11,7 @@
 static const char* DEFAULT_FILE_NAME = "no-file";
 
 class ReceiversSet;
+class SnapshotsSet;
 
 
 
@@ -146,7 +147,8 @@ public:
   int order; ///< finite element order
 
   int step_snap; ///< time step for outputting snapshots (every *th time step)
-  const char* snapshot_format; ///< binary (bin) or VTK-type (vts)
+  const char *snapshots_file; ///< file describing the sets of snapshots locations
+  std::vector<SnapshotsSet*> sets_of_snapshots;
 
   const char* method; ///< finite elements (fem) or spectral elements (sem)
   const char *extra_string; ///< added to output files for distinguishing the

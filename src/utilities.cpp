@@ -57,22 +57,6 @@ void read_binary(const char *filename, int n_values, double *values)
 
 
 
-void write_binary(const char *filename, int n_values, double *values)
-{
-  ofstream out(filename, ios::binary);
-  MFEM_VERIFY(out, "File '" + string(filename) + "' can't be opened");
-
-  for (int i = 0; i < n_values; ++i)
-  {
-    float val = values[i];
-    out.write(reinterpret_cast<char*>(&val), sizeof(float));
-  }
-
-  out.close();
-}
-
-
-
 void get_minmax(double *a, int n_elements, double &min_val, double &max_val)
 {
   min_val = max_val = a[0];
@@ -211,4 +195,192 @@ void write_vts_scalar(const std::string& filename, const std::string& solname,
   out << "</VTKFile>\n";
 
   out.close();
+}
+
+
+
+int find_element(double sx, double sy, double sz, int nx, int ny, int nz,
+                 const Vertex &point, bool throw_exception)
+{
+  const double px = point(0); // coordinates of the point of interest
+  const double py = point(1);
+  const double pz = point(2);
+
+  const double x0 = 0.0; // limits of the rectangular mesh
+  const double x1 = sx;
+  const double y0 = 0.0;
+  const double y1 = sy;
+  const double z0 = 0.0;
+  const double z1 = sz;
+
+  // check that the point is within the mesh
+  const double tol = FIND_CELL_TOLERANCE;
+  if (px < x0 - tol || px > x1 + tol ||
+      py < y0 - tol || py > y1 + tol)
+  {
+    if (throw_exception)
+      MFEM_ABORT("The given point [" + d2s(px) + "," + d2s(py) + "] doesn't "
+                 "belong to the rectangular mesh");
+
+    return -1; // to show that the point in not here
+  }
+
+  // since the elements of the cubic mesh are numerated in the following
+  // way:
+  // ^ Y          / Z
+  // | -----------
+  // |/ 6  / 7  /|
+  // ----------- |
+  // | 2  | 3  |/|
+  // ----------- |
+  // | 0  | 1  |/
+  // -------------> X
+  // we can simplify the search of the element containing the given point:
+
+  int cellx = (px-x0) * nx / (x1 - x0);
+  int celly = (py-y0) * ny / (y1 - y0);
+  int cellz = (pz-z0) * nz / (z1 - z0);
+
+  if (cellx) --cellx;
+  if (celly) --celly;
+  if (cellz) --cellz;
+
+  return (cellz*nx*ny + celly*nx + cellx);
+}
+
+
+
+//------------------------------------------------------------------------------
+//
+// Check endianness
+//
+//------------------------------------------------------------------------------
+bool is_big_endian()
+{
+  union
+  {
+    int i;
+    char c[sizeof(int)];
+  } x;
+  x.i = 1;
+  return x.c[0] == 1;
+}
+
+//------------------------------------------------------------------------------
+//
+// Get the endianness of the machine
+//
+//------------------------------------------------------------------------------
+std::string endianness()
+{
+  return (is_big_endian() ? "BigEndian" : "LittleEndian");
+}
+
+
+
+//------------------------------------------------------------------------------
+//
+// Name of a file without a path
+//
+//------------------------------------------------------------------------------
+std::string file_name(const std::string &path)
+{
+  if (path == "") return path;
+
+  size_t pos = 0;
+#if defined(__linux__) || defined(__APPLE__)
+  pos = path.find_last_of('/');
+#elif defined(_WIN32)
+  pos = path.find_last_of('\\');
+#endif
+
+  if (pos == std::string::npos)
+    return path; // there is no '/' in the path, so this is the filename
+
+  return path.substr(pos + 1);
+}
+
+//------------------------------------------------------------------------------
+//
+// Path of a given file
+//
+//------------------------------------------------------------------------------
+std::string file_path(const std::string &path)
+{
+  if (path == "") return path;
+
+  size_t pos = 0;
+#if defined(__linux__) || defined(__APPLE__)
+  pos = path.find_last_of('/');
+#elif defined(_WIN32)
+  pos = path.find_last_of('\\');
+#endif
+
+  if (pos == std::string::npos)
+    return ""; // there is no '/' in the path, the path is "" then
+
+  return path.substr(0, pos + 1);
+}
+
+//------------------------------------------------------------------------------
+//
+// Stem of a given file (no path, no extension)
+//
+//------------------------------------------------------------------------------
+std::string file_stem(const std::string &path)
+{
+  if (path == "") return path;
+
+  // get a file name from the path
+  const std::string fname = file_name(path);
+
+  // extract a stem and return it
+  size_t pos = fname.find_last_of('.');
+  if (pos == std::string::npos)
+    return fname; // there is no '.', so this is the stem
+
+  return fname.substr(0, pos);
+}
+
+//------------------------------------------------------------------------------
+//
+// Extension of a given file
+//
+//------------------------------------------------------------------------------
+std::string file_extension(const std::string &path)
+{
+  if (path == "") return path;
+
+  // extract a file name from the path
+  const std::string fname = file_name(path);
+
+  size_t pos = fname.find_last_of('.');
+  if (pos == std::string::npos)
+    return ""; // there is no '.', so there is no extension
+
+  // extract an extension and return it
+  return fname.substr(pos);
+}
+
+//------------------------------------------------------------------------------
+//
+// Check if the given file exists
+//
+//------------------------------------------------------------------------------
+bool file_exists(const std::string &path)
+{
+  if (path == "") return false; // no file - no existance
+
+  // This is not the fastest method, but it should work on all operating
+  // systems. Some people also not that this method check 'availibility' of the
+  // file, not its 'existance'. But that's what we actually need. If a file
+  // exists, but it's not available (even for reading), we believe, that the
+  // file doesn't exist.
+  bool exists = false;
+  std::ifstream in(path.c_str());
+  if (in.good())
+    exists = true; // file exists and is in a good state
+  in.close();
+
+  return exists;
 }

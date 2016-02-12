@@ -3,6 +3,7 @@
 
 #include "config.hpp"
 
+#include <fstream>
 #include <sstream>
 #include <stdexcept>
 
@@ -67,7 +68,20 @@ void read_binary(const char *filename, int n_values, double *values);
 /**
  * Write a binary file
  */
-void write_binary(const char *filename, int n_values, double *values);
+template <typename T>
+void write_binary(const char *filename, int n_values, double *values)
+{
+  std::ofstream out(filename, std::ios::binary);
+  if (!out) {
+    throw std::runtime_error("File '" + std::string(filename) +
+                             "' can't be opened");
+  }
+  T val;
+  for (int i = 0; i < n_values; ++i) {
+    val = values[i];
+    out.write(reinterpret_cast<char*>(&val), sizeof(val));
+  }
+}
 
 /**
  * Find min and max values of the given array (vector) a
@@ -107,5 +121,20 @@ void write_vts_vector(const std::string& filename, const std::string& solname,
 void write_vts_scalar(const std::string& filename, const std::string& solname,
                       double sx, double sy, double sz, int nx, int ny, int nz,
                       const mfem::Vector& sol);
+
+int find_element(double sx, double sy, double sz, int nx, int ny, int nz,
+                 const mfem::Vertex &point, bool throw_exception);
+
+std::string endianness();
+
+std::string file_name(const std::string &path);
+
+std::string file_path(const std::string &path);
+
+std::string file_stem(const std::string &path);
+
+std::string file_extension(const std::string &path);
+
+bool file_exists(const std::string &path);
 
 #endif // UTILITIES_HPP

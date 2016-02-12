@@ -19,7 +19,7 @@ void ReceiversSet::
 find_cells_containing_receivers(int nx, int ny, int nz, double sx, double sy,
                                 double sz)
 {
-  MFEM_VERIFY(!_receivers.empty(), "The receivers hasn't been distributed yet");
+  MFEM_VERIFY(!_receivers.empty(), "The receivers haven't been distributed yet");
 
   _cells_containing_receivers.clear();
   _cells_containing_receivers.resize(_n_receivers);
@@ -92,59 +92,3 @@ std::string ReceiversLine::description() const
          "_z" + d2s(_start(2)) + "_" + d2s(_end(2));
 }
 
-
-
-
-//==============================================================================
-//
-// Auxiliary
-//
-//==============================================================================
-int find_element(double sx, double sy, double sz, int nx, int ny, int nz,
-                 const Vertex &point, bool throw_exception)
-{
-  const double px = point(0); // coordinates of the point of interest
-  const double py = point(1);
-  const double pz = point(2);
-
-  const double x0 = 0.0; // limits of the rectangular mesh
-  const double x1 = sx;
-  const double y0 = 0.0;
-  const double y1 = sy;
-  const double z0 = 0.0;
-  const double z1 = sz;
-
-  // check that the point is within the mesh
-  const double tol = FIND_CELL_TOLERANCE;
-  if (px < x0 - tol || px > x1 + tol ||
-      py < y0 - tol || py > y1 + tol)
-  {
-    if (throw_exception)
-      MFEM_ABORT("The given point [" + d2s(px) + "," + d2s(py) + "] doesn't "
-                 "belong to the rectangular mesh");
-
-    return -1; // to show that the point in not here
-  }
-
-  // since the elements of the cubic mesh are numerated in the following
-  // way:
-  // ^ Y          / Z
-  // | -----------
-  // |/ 6  / 7  /|
-  // ----------- |
-  // | 2  | 3  |/|
-  // ----------- |
-  // | 0  | 1  |/
-  // -------------> X
-  // we can simplify the search of the element containing the given point:
-
-  int cellx = (px-x0) * nx / (x1 - x0);
-  int celly = (py-y0) * ny / (y1 - y0);
-  int cellz = (pz-z0) * nz / (z1 - z0);
-
-  if (cellx) --cellx;
-  if (celly) --celly;
-  if (cellz) --cellz;
-
-  return (cellz*nx*ny + celly*nx + cellx);
-}

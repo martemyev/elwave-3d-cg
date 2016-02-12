@@ -1,5 +1,6 @@
 #include "parameters.hpp"
 #include "receivers.hpp"
+#include "snapshots.hpp"
 #include "utilities.hpp"
 
 #include <cfloat>
@@ -251,7 +252,7 @@ Parameters::Parameters()
   , dt(1e-3)
   , order(1)
   , step_snap(1000)
-  , snapshot_format("vts")
+  , snapshots_file(DEFAULT_FILE_NAME)
   , method("sem")
   , extra_string("")
   , step_seis(1)
@@ -260,6 +261,9 @@ Parameters::Parameters()
 
 Parameters::~Parameters()
 {
+  for (size_t i = 0; i < sets_of_snapshots.size(); ++i)
+    delete sets_of_snapshots[i];
+
   for (size_t i = 0; i < sets_of_receivers.size(); ++i)
     delete sets_of_receivers[i];
 }
@@ -277,7 +281,7 @@ void Parameters::init(int argc, char **argv)
   args.AddOption(&dt, "-dt", "--time-step", "Time step, s");
   args.AddOption(&order, "-o", "--order", "Finite element order (polynomial degree)");
   args.AddOption(&step_snap, "-step-snap", "--step-snapshot", "Time step for outputting snapshots");
-  args.AddOption(&snapshot_format, "-snap-format", "--snapshot-format", "Format of snapshots (bin, vts)");
+  args.AddOption(&snapshots_file, "-snap-file", "--snapshots-file", "File with information about snapshot locations");
   args.AddOption(&method, "-method", "--method", "Finite elements (fem) or spectral elements (sem)");
   args.AddOption(&extra_string, "-extra", "--extra", "Extra string for naming output files");
   args.AddOption(&step_seis, "-step-seis", "--step-seismogram", "Time step for outputting seismograms");
@@ -302,27 +306,56 @@ void Parameters::init(int argc, char **argv)
   if (bc.damp_layer < 2.5*min_wavelength)
     mfem_warning("damping layer for absorbing bc should be about 3*wavelength\n");
 
-  ifstream in(receivers_file);
-  MFEM_VERIFY(in, "The file '" + string(receivers_file) + "' can't be opened");
-  string line; // we read the file line-by-line
-  string type; // type of the set of receivers
-  while (getline(in, line))
   {
-    // ignore empty lines and lines starting from '#'
-    if (line.empty() || line[0] == '#') continue;
-    // every meaningfull line should start with the type of the receivers set
-    istringstream iss(line);
-    iss >> type;
-    ReceiversSet *rec_set = nullptr;
-    if (type == "Line")
-      rec_set = new ReceiversLine();
-    else MFEM_ABORT("Unknown type of receivers set: " + type);
+    ifstream in(snapshots_file);
+    MFEM_VERIFY(in, "The file '" + string(snapshots_file) + "' can't be opened");
+    string line; // we read the file line-by-line
+    string type; // type of the set of receivers
+    while (getline(in, line))
+    {
+      // ignore empty lines and lines starting from '#'
+      if (line.empty() || line[0] == '#') continue;
+      // every meaningfull line should start with the type of the receivers set
+      istringstream iss(line);
+      iss >> type;
+      SnapshotsSet *snap_set = nullptr;
+      if (type == "Plane")
+        snap_set = new SnapshotsPlane();
+      else if (type == "Volume")
+        snap_set = new SnapshotsVolume();
+      else MFEM_ABORT("Unknown type of snapshot set: " + type);
 
-    rec_set->init(in); // read the parameters
-    rec_set->distribute_receivers();
-    rec_set->find_cells_containing_receivers(grid.nx, grid.ny, grid.nz, grid.sx,
-                                             grid.sy, grid.sz);
-    sets_of_receivers.push_back(rec_set); // put this set in the vector
+      snap_set->init(in); // read the parameters
+      snap_set->distribute_snapshot_points();
+      snap_set->find_cells_containing_snapshot_points(grid.nx, grid.ny, grid.nz,
+                                                      grid.sx, grid.sy, grid.sz);
+      sets_of_snapshots.push_back(snap_set); // put this set in the vector
+    }
+  }
+
+  {
+    ifstream in(receivers_file);
+    MFEM_VERIFY(in, "The file '" + string(receivers_file) + "' can't be opened");
+    string line; // we read the file line-by-line
+    string type; // type of the set of receivers
+    while (getline(in, line))
+    {
+      // ignore empty lines and lines starting from '#'
+      if (line.empty() || line[0] == '#') continue;
+      // every meaningfull line should start with the type of the receivers set
+      istringstream iss(line);
+      iss >> type;
+      ReceiversSet *rec_set = nullptr;
+      if (type == "Line")
+        rec_set = new ReceiversLine();
+      else MFEM_ABORT("Unknown type of receivers set: " + type);
+
+      rec_set->init(in); // read the parameters
+      rec_set->distribute_receivers();
+      rec_set->find_cells_containing_receivers(grid.nx, grid.ny, grid.nz, grid.sx,
+                                               grid.sy, grid.sz);
+      sets_of_receivers.push_back(rec_set); // put this set in the vector
+    }
   }
 }
 
