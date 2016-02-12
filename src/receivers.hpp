@@ -17,9 +17,6 @@ class ReceiversSet
 {
 public:
 
-  ReceiversSet();
-  ReceiversSet(const ReceiversSet& rec);
-  ReceiversSet& operator =(const ReceiversSet& rec);
   virtual ~ReceiversSet() { }
 
   /**
@@ -34,6 +31,8 @@ public:
   void find_cells_containing_receivers(int nx, int ny, int nz, double sx,
                                        double sy, double sz);
 
+  std::string get_variable() const { return _variable; }
+
   int n_receivers() const { return _n_receivers; }
 
   const std::vector<mfem::Vertex>& get_receivers() const
@@ -41,9 +40,6 @@ public:
 
   const std::vector<int>& get_cells_containing_receivers() const
   { return _cells_containing_receivers; }
-
-//  void print_receivers(const mfem::Mesh& mesh,
-//                       std::ostream& out = std::cout) const;
 
   /**
    * Initialize the parameters of the receivers set reading them from a given
@@ -65,6 +61,11 @@ public:
 protected:
 
   /**
+   * Variable to be recorded at this receiver line.
+   */
+  std::string _variable;
+
+  /**
    * Number of receivers (stations) in the set.
    */
   int _n_receivers;
@@ -78,6 +79,10 @@ protected:
    * Numbers of grid cells containing the receivers.
    */
   std::vector<int> _cells_containing_receivers;
+
+  ReceiversSet();
+  ReceiversSet(const ReceiversSet& rec);
+  ReceiversSet& operator =(const ReceiversSet& rec);
 };
 
 
@@ -90,8 +95,6 @@ class ReceiversLine: public ReceiversSet
 {
 public:
   ReceiversLine();
-  ReceiversLine(const ReceiversLine& rec);
-  ReceiversLine& operator =(const ReceiversLine& rec);
   ~ReceiversLine() { }
   void init(std::ifstream &in);
   void distribute_receivers();
@@ -99,33 +102,11 @@ public:
 protected:
   mfem::Vertex _start; ///< beginning of line of recievers
   mfem::Vertex _end;   ///< end       of line of receivers
+
+  ReceiversLine(const ReceiversLine& rec);
+  ReceiversLine& operator =(const ReceiversLine& rec);
 };
 
-
-
-
-/**
- * A class representing a plane of receivers distributed at the vertices of the
- * Cartesian grid built over this plane.
- */
-class ReceiversPlane: public ReceiversSet
-{
-public:
-  ReceiversPlane();
-  ReceiversPlane(const ReceiversPlane& rec);
-  ReceiversPlane& operator =(const ReceiversPlane& rec);
-  ~ReceiversPlane() { }
-  void init(std::ifstream &in);
-  void distribute_receivers();
-  std::string description() const;
-protected:
-  int _n_receivers_1; ///< Number of receivers in one direction
-  int _n_receivers_2; ///< Number of receivers in another direction
-  std::string _plane; ///< To which plane this plane of receivers is parallel
-  double _plane_coord;///< Coordinate of the axis orthogonal to the plane
-  mfem::Vertex _start;///< Coordinates of the boundaries (begin) of the receivers plane
-  mfem::Vertex _end;  ///< Coordinates of the boundaries (end) of the receivers plane
-};
 
 
 

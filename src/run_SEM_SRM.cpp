@@ -157,29 +157,9 @@ void ElasticWave2D::run_SEM_SRM()
   const string method_name = "SEM_";
 
   cout << "Open seismograms files..." << flush;
-  int n_rec_sets = param.sets_of_receivers.size();
-  ofstream *seisU = new ofstream[N_ELAST_COMPONENTS*n_rec_sets]; // for displacement
-  ofstream *seisV = new ofstream[N_ELAST_COMPONENTS*n_rec_sets]; // for velocity
-  for (int r = 0; r < n_rec_sets; ++r)
-  {
-    const string desc = param.sets_of_receivers[r]->description();
-#if defined(DEBUG_WAVE)
-    cout << desc << "\n";
-    param.sets_of_receivers[r]->print_receivers(mesh);
-#endif
-    for (int c = 0; c < N_ELAST_COMPONENTS; ++c)
-    {
-      string seismofile = method_name + param.extra_string + desc + "_u" + d2s(c) + ".bin";
-      seisU[r*N_ELAST_COMPONENTS + c].open(seismofile.c_str(), ios::binary);
-      MFEM_VERIFY(seisU[r*N_ELAST_COMPONENTS + c], "File '" + seismofile +
-                  "' can't be opened");
-
-      seismofile = method_name + param.extra_string + desc + "_v" + d2s(c) + ".bin";
-      seisV[r*N_ELAST_COMPONENTS + c].open(seismofile.c_str(), ios::binary);
-      MFEM_VERIFY(seisV[r*N_ELAST_COMPONENTS + c], "File '" + seismofile +
-                  "' can't be opened");
-    } // loop for components
-  } // loop for sets of receivers
+  std::vector<ofstream> seisU; // for displacement
+  std::vector<ofstream> seisV; // for velocity
+  open_seismo_outs(seisU, seisV, param);
   cout << "done. Time = " << chrono.RealTime() << " sec" << endl;
   chrono.Clear();
 
@@ -200,23 +180,31 @@ void ElasticWave2D::run_SEM_SRM()
   cout << "N time steps = " << n_time_steps
        << "\nTime loop..." << endl;
 
+  // the values of the time-dependent part of the source
+  std::vector<double> time_values(n_time_steps);
+  if (!strcmp(param.source.type, "pointforce")) {
+    for (int time_step = 1; time_step <= n_time_steps; ++time_step) {
+      const double cur_time = time_step * param.dt;
+      time_values[time_step-1] = RickerWavelet(param.source,
+                                               cur_time - param.dt);
+    }
+  } else if (!strcmp(param.source.type, "momenttensor")) {
+    for (int time_step = 1; time_step <= n_time_steps; ++time_step) {
+      const double cur_time = time_step * param.dt;
+      time_values[time_step-1] = GaussFirstDerivative(param.source,
+                                                      cur_time - param.dt);
+    }
+  } else MFEM_ABORT("Unknown source type: " + string(param.source.type));
+
   for (int time_step = 1; time_step <= n_time_steps; ++time_step)
   {
-    const double cur_time = time_step * param.dt;
-    double time_val; // the value of the time-dependent part of the source
-    if (!strcmp(param.source.type, "pointforce"))
-      time_val = RickerWavelet(param.source, cur_time - param.dt);
-    else if (!strcmp(param.source.type, "momenttensor"))
-      time_val = GaussFirstDerivative(param.source, cur_time - param.dt);
-    else MFEM_ABORT("Unknown source type: " + string(param.source.type));
-
     Vector y = u_1; y *= 2.0; y -= u_2;        // y = 2*u_1 - u_2
 
     Vector z0; z0.SetSize(N);                  // z0 = M * (2*u_1 - u_2)
     for (int i = 0; i < N; ++i) z0[i] = diagM[i] * y[i];
 
-    Vector z1; z1.SetSize(N); S.Mult(u_1, z1); // z1 = S * u_1
-    Vector z2 = b; z2 *= time_val;             // z2 = timeval*source
+    Vector z1; z1.SetSize(N); S.Mult(u_1, z1);     // z1 = S * u_1
+    Vector z2 = b; z2 *= time_values[time_step-1]; // z2 = timeval*source
 
     // y = dt^2 * (S*u_1 - timeval*source), where it can be
     // y = dt^2 * (S*u_1 - ricker*pointforce) OR
