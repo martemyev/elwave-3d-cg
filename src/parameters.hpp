@@ -152,6 +152,7 @@ public:
   const char *extra_string; ///< added to output files for distinguishing the
                             ///< results
 
+  int step_seis; ///< time step for outputting seismograms (every *th time step)
   const char *receivers_file; ///< file describing the sets of receivers
   std::vector<ReceiversSet*> sets_of_receivers;
 

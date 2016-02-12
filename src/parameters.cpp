@@ -254,6 +254,7 @@ Parameters::Parameters()
   , snapshot_format("vts")
   , method("sem")
   , extra_string("")
+  , step_seis(1)
   , receivers_file(DEFAULT_FILE_NAME)
 { }
 
@@ -279,6 +280,7 @@ void Parameters::init(int argc, char **argv)
   args.AddOption(&snapshot_format, "-snap-format", "--snapshot-format", "Format of snapshots (bin, vts)");
   args.AddOption(&method, "-method", "--method", "Finite elements (fem) or spectral elements (sem)");
   args.AddOption(&extra_string, "-extra", "--extra", "Extra string for naming output files");
+  args.AddOption(&step_seis, "-step-seis", "--step-seismogram", "Time step for outputting seismograms");
   args.AddOption(&receivers_file, "-rec-file", "--receivers-file", "File with information about receivers");
 
   args.Parse();
@@ -298,7 +300,7 @@ void Parameters::init(int argc, char **argv)
   cout << "min wavelength = " << min_wavelength << endl;
 
   if (bc.damp_layer < 2.5*min_wavelength)
-    mfem_warning("damping layer for absorbing bc should be about 3*wavelength");
+    mfem_warning("damping layer for absorbing bc should be about 3*wavelength\n");
 
   ifstream in(receivers_file);
   MFEM_VERIFY(in, "The file '" + string(receivers_file) + "' can't be opened");
@@ -338,5 +340,6 @@ void Parameters::check_parameters() const
   MFEM_VERIFY(!strcmp(method, "fem") || !strcmp(method, "FEM") ||
               !strcmp(method, "sem") || !strcmp(method, "SEM"), "Method (" +
               string(method) + ") must be either fem or sem");
+  MFEM_VERIFY(step_seis > 0, "step_seis (" + d2s(step_seis) + ") must be >0");
 }
 
