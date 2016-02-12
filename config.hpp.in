@@ -3,7 +3,8 @@
 
 #include <string>
 
-#include "config/config.hpp" // MFEM config file
+// MFEM config file
+#include "@MFEM_DIR@/@MFEM_BUILD@/config.hpp"
 
 #ifndef nullptr
   #define nullptr NULL

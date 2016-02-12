@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 
+
 project(elwave-3d-cg CXX)
+
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RELEASE CACHE STRING
@@ -8,16 +10,71 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 string(TOUPPER ${CMAKE_BUILD_TYPE} BUILD_TYPE)
 
-set(MFEM_DIR "/u/artemyev/projects/mfem/")
-include_directories("${MFEM_DIR}")
-link_directories("${MFEM_DIR}/build")
+
+set(AUX_CXX_FLAGS "-std=c++0x -Wall") # use this with MFEM
+if(NOT MFEM_DIR)
+  set(MFEM_DIR "$ENV{HOME}/projects/mfem" CACHE PATH "Path to the MFEM root directory" FORCE)
+endif()
+message(STATUS "MFEM_DIR ${MFEM_DIR}")
+if(NOT MFEM_BUILD)
+  if(BUILD_TYPE STREQUAL "DEBUG")
+    set(MFEM_BUILD "serialdebug" CACHE STRING
+        "Name of MFEM build (it's a subdirectory with config file and library")
+  elseif(BUILD_TYPE STREQUAL "RELWITHDEBINFO")
+    set(MFEM_BUILD "serial")
+  elseif(BUILD_TYPE STREQUAL "RELEASE")
+    set(MFEM_BUILD "serial")
+  else()
+    message(FATAL_ERROR "Unknown BUILD_TYPE")
+  endif()
+endif()
+message(STATUS "MFEM_BUILD ${MFEM_BUILD}")
+include_directories("${MFEM_DIR}") # for "mfem.hpp"
+link_directories("${MFEM_DIR}/${MFEM_BUILD}")
+
+
+if(BUILD_TYPE STREQUAL "DEBUG")
+  if(NOT(${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC"))
+    set(AUX_CXX_FLAGS "${AUX_CXX_FLAGS} -fno-inline")
+  endif()
+elseif(BUILD_TYPE STREQUAL "RELWITHDEBINFO")
+  if(NOT(${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC"))
+    set(AUX_CXX_FLAGS "${AUX_CXX_FLAGS} -fno-inline")
+  endif()
+else()
+  message(FATAL_ERROR "Unknown build type: ${BUILD_TYPE}. Options: Debug | Release | RelWithDebInfo")
+endif()
+
+if(BUILD_TYPE STREQUAL "DEBUG")
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${AUX_CXX_FLAGS}")
+elseif(BUILD_TYPE STREQUAL "RELWITHDEBINFO")
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} ${AUX_CXX_FLAGS}")
+elseif(BUILD_TYPE STREQUAL "RELEASE")
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${AUX_CXX_FLAGS}")
+endif()
+
 
 file(GLOB SRC_LIST "${PROJECT_SOURCE_DIR}/src/*.cpp")
 file(GLOB HDR_LIST "${PROJECT_SOURCE_DIR}/src/*.hpp")
+include_directories("${PROJECT_SOURCE_DIR}/src") # for "config.hpp"
+
 
 configure_file(
   "${PROJECT_SOURCE_DIR}/config.hpp.in"
   "${PROJECT_SOURCE_DIR}/src/config.hpp")
+
+
+message("\n--------------- configuration information ----------------")
+  message("build type     " ${BUILD_TYPE})
+  message("compiler       " ${CMAKE_CXX_COMPILER})
+if(BUILD_TYPE STREQUAL "DEBUG")
+  message("compiler flags " ${CMAKE_CXX_FLAGS_DEBUG})
+elseif(BUILD_TYPE STREQUAL "RELWITHDEBINFO")
+  message("compiler flags " ${CMAKE_CXX_FLAGS_RELWITHDEBINFO})
+elseif(BUILD_TYPE STREQUAL "RELEASE")
+  message("compiler flags " ${CMAKE_CXX_FLAGS_RELEASE})
+endif()
+
 
 add_executable(${PROJECT_NAME} ${SRC_LIST} ${HDR_LIST})
 target_link_libraries(${PROJECT_NAME} mfem rt)

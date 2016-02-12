@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
     return 0;
   }
 
-#if defined(DEBUG_WAVE)
+#if defined(MFEM_DEBUG)
   cout << "****************************\n";
   cout << "*     DEBUG VERSION        *\n";
   cout << "****************************\n";
