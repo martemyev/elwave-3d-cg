@@ -41,8 +41,6 @@ elseif(BUILD_TYPE STREQUAL "RELWITHDEBINFO")
   if(NOT(${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC"))
     set(AUX_CXX_FLAGS "${AUX_CXX_FLAGS} -fno-inline")
   endif()
-else()
-  message(FATAL_ERROR "Unknown build type: ${BUILD_TYPE}. Options: Debug | Release | RelWithDebInfo")
 endif()
 
 if(BUILD_TYPE STREQUAL "DEBUG")
