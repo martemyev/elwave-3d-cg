@@ -4,6 +4,7 @@
 #include "config.hpp"
 #include "mfem.hpp"
 
+#include <fstream>
 #include <vector>
 
 class Parameters;
@@ -113,13 +114,15 @@ mfem::Vector compute_function_at_points(double sx, double sy, double sz, int nx,
                                         const std::vector<int>& cells_containing_points,
                                         const mfem::GridFunction& U);
 
+void open_seismo_outs(std::ofstream* &seisU, std::ofstream* &seisV,
+                      const Parameters &param, const std::string &method_name);
+
 void output_snapshots(int time_step, const std::string& snapshot_filebase,
                       const Parameters& param, const mfem::GridFunction& U,
                       const mfem::GridFunction& V);
 
 void output_seismograms(const Parameters& param, const mfem::Mesh& mesh,
                         const mfem::GridFunction &U, const mfem::GridFunction &V,
-                        std::vector<std::ofstream> &seisU,
-                        std::vector<std::ofstream> &seisV);
+                        std::ofstream* &seisU, std::ofstream* &seisV);
 
 #endif // ELASTIC_WAVE3D_HPP

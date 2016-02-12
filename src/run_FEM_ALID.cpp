@@ -3,6 +3,7 @@
 #include "receivers.hpp"
 
 #include <fstream>
+#include <vector>
 
 using namespace std;
 using namespace mfem;
@@ -165,9 +166,9 @@ void ElasticWave2D::run_FEM_ALID()
   const string method_name = "FEM_";
 
   cout << "Open seismograms files..." << flush;
-  vector<ofstream> seisU; // for displacement
-  vector<ofstream> seisV; // for velocity
-  open_seismo_outs();
+  ofstream *seisU; // for displacement
+  ofstream *seisV; // for velocity
+  open_seismo_outs(seisU, seisV, param, method_name);
   cout << "done. Time = " << chrono.RealTime() << " sec" << endl;
   chrono.Clear();
 
@@ -188,20 +189,28 @@ void ElasticWave2D::run_FEM_ALID()
   cout << "N time steps = " << n_time_steps
        << "\nTime loop..." << endl;
 
+  // the values of the time-dependent part of the source
+  vector<double> time_values(n_time_steps);
+  if (!strcmp(param.source.type, "pointforce")) {
+    for (int time_step = 1; time_step <= n_time_steps; ++time_step) {
+      const double cur_time = time_step * param.dt;
+      time_values[time_step-1] = RickerWavelet(param.source,
+                                               cur_time - param.dt);
+    }
+  } else if (!strcmp(param.source.type, "momenttensor")) {
+    for (int time_step = 1; time_step <= n_time_steps; ++time_step) {
+      const double cur_time = time_step * param.dt;
+      time_values[time_step-1] = GaussFirstDerivative(param.source,
+                                                      cur_time - param.dt);
+    }
+  } else MFEM_ABORT("Unknown source type: " + string(param.source.type));
+
   for (int time_step = 1; time_step <= n_time_steps; ++time_step)
   {
-    const double cur_time = time_step * param.dt;
-    double time_val; // the value of the time-dependent part of the source
-    if (!strcmp(param.source.type, "pointforce"))
-      time_val = RickerWavelet(param.source, cur_time - param.dt);
-    else if (!strcmp(param.source.type, "momenttensor"))
-      time_val = GaussFirstDerivative(param.source, cur_time - param.dt);
-    else MFEM_ABORT("Unknown source type: " + string(param.source.type));
-
-    Vector y = u_1; y *= 2.0; y -= u_2;        // y = 2*u_1 - u_2
-    Vector z0; z0.SetSize(N); M.Mult(y, z0);   // z0 = M * (2*u_1 - u_2)
-    Vector z1; z1.SetSize(N); S.Mult(u_1, z1); // z1 = S * u_1
-    Vector z2 = b; z2 *= time_val;             // z2 = timeval*source
+    Vector y = u_1; y *= 2.0; y -= u_2;            // y = 2*u_1 - u_2
+    Vector z0; z0.SetSize(N); M.Mult(y, z0);       // z0 = M * (2*u_1 - u_2)
+    Vector z1; z1.SetSize(N); S.Mult(u_1, z1);     // z1 = S * u_1
+    Vector z2 = b; z2 *= time_values[time_step-1]; // z2 = timeval*source
 
     // y = dt^2 * (S*u_1 - timeval*source), where it can be
     // y = dt^2 * (S*u_1 - ricker*pointforce) OR
@@ -237,6 +246,9 @@ void ElasticWave2D::run_FEM_ALID()
     u_2 = u_1;
     u_1 = u_0;
   }
+
+  delete[] seisU;
+  delete[] seisV;
 
   cout << "Time loop is over" << endl;
 

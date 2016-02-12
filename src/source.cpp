@@ -164,15 +164,15 @@ void PlaneWaveSource::Eval(Vector &V, ElementTransformation &T,
   T.Transform(ip, transip);
   V.SetSize(vdim);
 
-  const double px = transip(0); // coordinates of the point
+//  const double px = transip(0); // coordinates of the point
   const double py = transip(1);
-  const double pz = transip(2);
+//  const double pz = transip(2);
 
-  const double X0 = 0.0;
-  const double Z0 = 0.0;
-  const double X1 = param.grid.sx;
-  const double Z1 = param.grid.sz;
-  const double layer = param.bc.damp_layer;
+//  const double X0 = 0.0;
+//  const double Z0 = 0.0;
+//  const double X1 = param.grid.sx;
+//  const double Z1 = param.grid.sz;
+//  const double layer = param.bc.damp_layer;
   const double tol = FLOAT_NUMBERS_EQUALITY_TOLERANCE;
 
   // if the point 'transip' is on the plane of the plane wave, and it's not in

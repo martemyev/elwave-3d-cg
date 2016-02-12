@@ -4,6 +4,7 @@
 #include "receivers.hpp"
 
 #include <fstream>
+#include <vector>
 
 using namespace std;
 using namespace mfem;
@@ -157,9 +158,9 @@ void ElasticWave2D::run_SEM_SRM()
   const string method_name = "SEM_";
 
   cout << "Open seismograms files..." << flush;
-  std::vector<ofstream> seisU; // for displacement
-  std::vector<ofstream> seisV; // for velocity
-  open_seismo_outs(seisU, seisV, param);
+  ofstream *seisU; // for displacement
+  ofstream *seisV; // for velocity
+  open_seismo_outs(seisU, seisV, param, method_name);
   cout << "done. Time = " << chrono.RealTime() << " sec" << endl;
   chrono.Clear();
 
@@ -181,7 +182,7 @@ void ElasticWave2D::run_SEM_SRM()
        << "\nTime loop..." << endl;
 
   // the values of the time-dependent part of the source
-  std::vector<double> time_values(n_time_steps);
+  vector<double> time_values(n_time_steps);
   if (!strcmp(param.source.type, "pointforce")) {
     for (int time_step = 1; time_step <= n_time_steps; ++time_step) {
       const double cur_time = time_step * param.dt;
@@ -240,6 +241,9 @@ void ElasticWave2D::run_SEM_SRM()
     u_2 = u_1;
     u_1 = u_0;
   }
+
+  delete[] seisU;
+  delete[] seisV;
 
   cout << "Time loop is over" << endl;
 

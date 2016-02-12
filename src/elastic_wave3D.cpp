@@ -4,8 +4,6 @@
 #include "receivers.hpp"
 #include "utilities.hpp"
 
-#include <fstream>
-
 using namespace std;
 using namespace mfem;
 
@@ -78,6 +76,44 @@ Vector compute_function_at_points(double sx, double sy, double sz,
 
 
 
+void open_seismo_outs(ofstream* &seisU, ofstream* &seisV,
+                      const Parameters &param, const string &method_name)
+{
+  const int n_rec_sets = param.sets_of_receivers.size();
+
+  seisU = new ofstream[N_ELAST_COMPONENTS*n_rec_sets];
+  seisV = new ofstream[N_ELAST_COMPONENTS*n_rec_sets];
+
+  for (int r = 0; r < n_rec_sets; ++r)
+  {
+    const ReceiversSet *rec_set = param.sets_of_receivers[r];
+    const string desc = rec_set->description();
+    const string variable = rec_set->get_variable();
+
+    if (variable.find("U") != string::npos) {
+      for (int c = 0; c < N_ELAST_COMPONENTS; ++c) {
+        string seismofile = SEISMOGRAMS_DIR + method_name + param.extra_string +
+                            desc + "_u" + d2s(c) + ".bin";
+        seisU[r*N_ELAST_COMPONENTS + c].open(seismofile.c_str(), ios::binary);
+        MFEM_VERIFY(seisU[r*N_ELAST_COMPONENTS + c], "File '" + seismofile +
+                    "' can't be opened");
+      }
+    }
+
+    if (variable.find("V") != string::npos) {
+      for (int c = 0; c < N_ELAST_COMPONENTS; ++c) {
+        string seismofile = SEISMOGRAMS_DIR + method_name + param.extra_string +
+                            desc + "_v" + d2s(c) + ".bin";
+        seisV[r*N_ELAST_COMPONENTS + c].open(seismofile.c_str(), ios::binary);
+        MFEM_VERIFY(seisV[r*N_ELAST_COMPONENTS + c], "File '" + seismofile +
+                    "' can't be opened");
+      }
+    }
+  } // loop for sets of receivers
+}
+
+
+
 void output_snapshots(int time_step, const string& snapshot_filebase,
                       const Parameters& param, const GridFunction& U,
                       const GridFunction& V)
@@ -122,16 +158,16 @@ void output_snapshots(int time_step, const string& snapshot_filebase,
 
 void output_seismograms(const Parameters& param, const Mesh& mesh,
                         const GridFunction &U, const GridFunction &V,
-                        vector<ofstream> &seisU, vector<ofstream> &seisV)
+                        ofstream* &seisU, ofstream* &seisV)
 {
   // for each set of receivers
   for (size_t rec = 0; rec < param.sets_of_receivers.size(); ++rec)
   {
     const ReceiversSet *rec_set = param.sets_of_receivers[rec];
-    const std::string variable = rec_set->get_variable();
+    const string variable = rec_set->get_variable();
 
     // Displacement
-    if (variable.find("U") != std::string::npos) {
+    if (variable.find("U") != string::npos) {
       for (int c = 0; c < N_ELAST_COMPONENTS; ++c) {
         MFEM_VERIFY(seisU[rec*N_ELAST_COMPONENTS+c].is_open(), "The stream for "
                     "writing displacement seismograms is not open");
@@ -154,7 +190,7 @@ void output_seismograms(const Parameters& param, const Mesh& mesh,
     }
 
     // Particle velocity
-    if (variable.find("V") != std::string::npos) {
+    if (variable.find("V") != string::npos) {
       for (int c = 0; c < N_ELAST_COMPONENTS; ++c) {
         MFEM_VERIFY(seisV[rec*N_ELAST_COMPONENTS+c].is_open(), "The stream for "
                     "writing velocity seismograms is not open");
@@ -167,7 +203,7 @@ void output_seismograms(const Parameters& param, const Mesh& mesh,
                                    rec_set->get_cells_containing_receivers(), V);
       MFEM_ASSERT(v.Size() == N_ELAST_COMPONENTS*rec_set->n_receivers(),
                   "Sizes mismatch");
-      for (int i = 0; i < u.Size(); i += N_ELAST_COMPONENTS) {
+      for (int i = 0; i < v.Size(); i += N_ELAST_COMPONENTS) {
         for (int j = 0; j < N_ELAST_COMPONENTS; ++j) {
           float val = v(i+j); // velocity
           seisV[rec*N_ELAST_COMPONENTS + j].write(reinterpret_cast<char*>(&val),
@@ -175,6 +211,7 @@ void output_seismograms(const Parameters& param, const Mesh& mesh,
         }
       }
     }
+  } // loop over receiver sets
 }
 
 
