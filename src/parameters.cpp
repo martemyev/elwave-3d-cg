@@ -257,6 +257,7 @@ Parameters::Parameters()
   , extra_string("")
   , step_seis(1)
   , receivers_file(DEFAULT_FILE_NAME)
+  , output_dir("output")
 { }
 
 Parameters::~Parameters()
@@ -286,6 +287,7 @@ void Parameters::init(int argc, char **argv)
   args.AddOption(&extra_string, "-extra", "--extra", "Extra string for naming output files");
   args.AddOption(&step_seis, "-step-seis", "--step-seismogram", "Time step for outputting seismograms");
   args.AddOption(&receivers_file, "-rec-file", "--receivers-file", "File with information about receivers");
+  args.AddOption(&output_dir, "-outdir", "--output-dir", "Directory to save results of computations");
 
   args.Parse();
   if (!args.Good())
@@ -356,6 +358,14 @@ void Parameters::init(int argc, char **argv)
                                                grid.sy, grid.sz);
       sets_of_receivers.push_back(rec_set); // put this set in the vector
     }
+  }
+
+  {
+    string cmd = "mkdir -p " + (string)output_dir + " ; ";
+    cmd += "mkdir -p " + (string)output_dir + "/" + SNAPSHOTS_DIR + " ; ";
+    cmd += "mkdir -p " + (string)output_dir + "/" + SEISMOGRAMS_DIR + " ; ";
+    const int res = system(cmd.c_str());
+    MFEM_VERIFY(res == 0, "Failed to create a directory " + (string)output_dir);
   }
 }
 

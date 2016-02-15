@@ -150,13 +150,15 @@ public:
   const char *snapshots_file; ///< file describing the sets of snapshots locations
   std::vector<SnapshotsSet*> sets_of_snapshots;
 
-  const char* method; ///< finite elements (fem) or spectral elements (sem)
+  const char *method; ///< finite elements (fem) or spectral elements (sem)
   const char *extra_string; ///< added to output files for distinguishing the
                             ///< results
 
   int step_seis; ///< time step for outputting seismograms (every *th time step)
   const char *receivers_file; ///< file describing the sets of receivers
   std::vector<ReceiversSet*> sets_of_receivers;
+
+  const char *output_dir; ///< directory for saving results of computations
 
   void init(int argc, char **argv);
   void check_parameters() const;

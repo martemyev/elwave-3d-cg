@@ -183,7 +183,8 @@ void ElasticWave2D::run_FEM_ALID()
   const int n_time_steps = ceil(param.T / param.dt);
   const int tenth = 0.1 * n_time_steps;
 
-  const string snapshot_filebase = SNAPSHOTS_DIR + method_name +
+  const string snapshot_filebase = (string)param.output_dir + "/" +
+                                   SNAPSHOTS_DIR + method_name +
                                    param.extra_string;
   const int N = u_0.Size();
 

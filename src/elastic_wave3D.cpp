@@ -93,8 +93,9 @@ void open_seismo_outs(ofstream* &seisU, ofstream* &seisV,
 
     if (variable.find("U") != string::npos) {
       for (int c = 0; c < N_ELAST_COMPONENTS; ++c) {
-        string seismofile = SEISMOGRAMS_DIR + method_name + param.extra_string +
-                            desc + "_u" + d2s(c) + ".bin";
+        string seismofile = (string)param.output_dir + "/" + SEISMOGRAMS_DIR +
+                            method_name + param.extra_string + desc + "_u" +
+                            d2s(c) + ".bin";
         seisU[r*N_ELAST_COMPONENTS + c].open(seismofile.c_str(), ios::binary);
         MFEM_VERIFY(seisU[r*N_ELAST_COMPONENTS + c], "File '" + seismofile +
                     "' can't be opened");
@@ -103,8 +104,9 @@ void open_seismo_outs(ofstream* &seisU, ofstream* &seisV,
 
     if (variable.find("V") != string::npos) {
       for (int c = 0; c < N_ELAST_COMPONENTS; ++c) {
-        string seismofile = SEISMOGRAMS_DIR + method_name + param.extra_string +
-                            desc + "_v" + d2s(c) + ".bin";
+        string seismofile = (string)param.output_dir + "/" + SEISMOGRAMS_DIR +
+                            method_name + param.extra_string + desc + "_v" +
+                            d2s(c) + ".bin";
         seisV[r*N_ELAST_COMPONENTS + c].open(seismofile.c_str(), ios::binary);
         MFEM_VERIFY(seisV[r*N_ELAST_COMPONENTS + c], "File '" + seismofile +
                     "' can't be opened");
