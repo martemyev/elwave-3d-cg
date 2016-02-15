@@ -56,14 +56,15 @@ Vector compute_function_at_point(double sx, double sy, double sz,
 
 Vector compute_function_at_points(double sx, double sy, double sz,
                                   int nx, int ny, int nz, const Mesh& mesh,
-                                  const vector<Vertex>& points,
-                                  const vector<int>& cells_containing_points,
+                                  int n_points,
+                                  const Vertex *points,
+                                  const int *cells_containing_points,
                                   const GridFunction& U)
 {
-  MFEM_ASSERT(points.size() == cells_containing_points.size(), "Sizes mismatch");
-  Vector U_at_points(N_ELAST_COMPONENTS*points.size());
+//  MFEM_ASSERT(points.size() == cells_containing_points.size(), "Sizes mismatch");
+  Vector U_at_points(N_ELAST_COMPONENTS*n_points);
 
-  for (size_t p = 0; p < points.size(); ++p)
+  for (int p = 0; p < n_points; ++p)
   {
     Vector values = compute_function_at_point(sx, sy, sz,
                                               nx, ny, nz, mesh, points[p],
@@ -132,7 +133,8 @@ void output_snapshots(int time_step, const string& snapshot_filebase,
       const Vector u =
         compute_function_at_points(param.grid.sx, param.grid.sy, param.grid.sz,
                                    param.grid.nx, param.grid.ny, param.grid.nz,
-                                   mesh, snap_set->get_snapshot_points(),
+                                   mesh, snap_set->n_snapshot_points(),
+                                   snap_set->get_snapshot_points(),
                                    snap_set->get_cells_containing_snapshot_points(),
                                    U);
       snap_set->save_snapshot_vector(u, time_step, "U_CG", N_ELAST_COMPONENTS,
@@ -144,7 +146,8 @@ void output_snapshots(int time_step, const string& snapshot_filebase,
       const Vector v =
         compute_function_at_points(param.grid.sx, param.grid.sy, param.grid.sz,
                                    param.grid.nx, param.grid.ny, param.grid.nz,
-                                   mesh, snap_set->get_snapshot_points(),
+                                   mesh, snap_set->n_snapshot_points(),
+                                   snap_set->get_snapshot_points(),
                                    snap_set->get_cells_containing_snapshot_points(),
                                    V);
       snap_set->save_snapshot_vector(v, time_step, "V_CG", N_ELAST_COMPONENTS,
@@ -210,8 +213,9 @@ void output_seismograms(const Parameters& param, const Mesh& mesh,
       const Vector u =
         compute_function_at_points(param.grid.sx, param.grid.sy, param.grid.sz,
                                    param.grid.nx, param.grid.ny, param.grid.nz,
-                                   mesh, rec_set->get_receivers(),
-                                   rec_set->get_cells_containing_receivers(), U);
+                                   mesh, rec_set->n_receivers(),
+                                   &(rec_set->get_receivers()[0]),
+                                   &(rec_set->get_cells_containing_receivers()[0]), U);
       MFEM_ASSERT(u.Size() == N_ELAST_COMPONENTS*rec_set->n_receivers(),
                   "Sizes mismatch");
       for (int i = 0; i < u.Size(); i += N_ELAST_COMPONENTS) {
@@ -233,8 +237,9 @@ void output_seismograms(const Parameters& param, const Mesh& mesh,
       const Vector v =
         compute_function_at_points(param.grid.sx, param.grid.sy, param.grid.sz,
                                    param.grid.nx, param.grid.ny, param.grid.nz,
-                                   mesh, rec_set->get_receivers(),
-                                   rec_set->get_cells_containing_receivers(), V);
+                                   mesh, rec_set->n_receivers(),
+                                   &(rec_set->get_receivers()[0]),
+                                   &(rec_set->get_cells_containing_receivers()[0]), V);
       MFEM_ASSERT(v.Size() == N_ELAST_COMPONENTS*rec_set->n_receivers(),
                   "Sizes mismatch");
       for (int i = 0; i < v.Size(); i += N_ELAST_COMPONENTS) {

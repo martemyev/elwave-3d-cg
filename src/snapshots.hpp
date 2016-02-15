@@ -4,7 +4,7 @@
 #include "config_elwave.hpp"
 
 #include <fstream>
-#include <vector>
+//#include <vector>
 
 #include "mfem.hpp"
 
@@ -22,7 +22,7 @@ class SnapshotsSet
 {
 public:
 
-  virtual ~SnapshotsSet() { }
+  virtual ~SnapshotsSet() { delete[] _snapshot_points; }
 
   /**
    * Find and save the numbers of coarse and fine cells containing the points
@@ -35,10 +35,10 @@ public:
 
   int n_snapshot_points() const { return _n_snapshot_points; }
 
-  const std::vector<mfem::Vertex>& get_snapshot_points() const
+  const mfem::Vertex* get_snapshot_points() const
   { return _snapshot_points; }
 
-  const std::vector<int>& get_cells_containing_snapshot_points() const
+  const int* get_cells_containing_snapshot_points() const
   { return _cells_contain_snapshot_points; }
 
   /**
@@ -85,12 +85,13 @@ protected:
   /**
    * The locations of the snapshot points.
    */
-  std::vector<mfem::Vertex> _snapshot_points;
+//  std::vector<mfem::Vertex> _snapshot_points;
+  mfem::Vertex *_snapshot_points;
 
   /**
    * Numbers (indices) of grid cells containing the receivers.
    */
-  std::vector<int> _cells_contain_snapshot_points;
+  int *_cells_contain_snapshot_points;
 
   /**
    * Save a snapshot of a vector solution in a file in VTS format

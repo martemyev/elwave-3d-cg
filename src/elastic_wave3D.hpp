@@ -110,8 +110,9 @@ mfem::Vector compute_function_at_point(double sx, double sy, double sz, int nx,
 
 mfem::Vector compute_function_at_points(double sx, double sy, double sz, int nx,
                                         int ny, int nz, const mfem::Mesh& mesh,
-                                        const std::vector<mfem::Vertex>& points,
-                                        const std::vector<int>& cells_containing_points,
+                                        int n_points,
+                                        const mfem::Vertex *points,
+                                        const int *cells_containing_points,
                                         const mfem::GridFunction& U);
 
 void open_seismo_outs(std::ofstream* &seisU, std::ofstream* &seisV,

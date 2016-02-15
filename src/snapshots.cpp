@@ -18,7 +18,7 @@ SnapshotsSet::SnapshotsSet()
   : _variable("")
   , _format("bin")
   , _n_snapshot_points(0)
-  , _snapshot_points()
+  , _snapshot_points(nullptr)
   , _cells_contain_snapshot_points()
 { }
 
@@ -26,10 +26,11 @@ void SnapshotsSet::
 find_cells_containing_snapshot_points(int nx, int ny, int nz, double sx,
                                       double sy, double sz)
 {
-  MFEM_VERIFY(!_snapshot_points.empty(), "The snapshot points haven't been "
+  MFEM_VERIFY(_snapshot_points != nullptr, "The snapshot points haven't been "
               "distributed yet");
 
-  _cells_contain_snapshot_points.resize(_n_snapshot_points);
+  delete[] _cells_contain_snapshot_points;
+  _cells_contain_snapshot_points = new int[_n_snapshot_points];
 
   // we throw an exception if we don't find a cell containing a receiver
   const bool throw_exception = true;
@@ -86,7 +87,7 @@ void SnapshotsPlane::init(std::ifstream &in)
 
 void SnapshotsPlane::distribute_snapshot_points()
 {
-  _snapshot_points.resize(_n_snapshot_points);
+  _snapshot_points = new mfem::Vertex[_n_snapshot_points];
 
   double x0 = _vertices[0](0);
   double y0 = _vertices[0](1);
@@ -284,7 +285,7 @@ void SnapshotsVolume::init(std::ifstream &in)
 
 void SnapshotsVolume::distribute_snapshot_points()
 {
-  _snapshot_points.resize(_n_snapshot_points);
+  _snapshot_points = new mfem::Vertex[_n_snapshot_points];
 
   double x0 = _min_coord(0);
   double y0 = _min_coord(1);
@@ -384,14 +385,14 @@ void save_snapshot_vector_bin(const Vector &snapshot, int time_step,
   // string representing a time step: 6 digits (first filled with 0)
   const std::string tstep_str = d2s(time_step, 0, 0, 0, 6);
 
-  std::vector<std::string> fnames(n_components);
+  std::string fnames[n_components];
   for (int c = 0; c < n_components; ++c) {
     fnames[c] = file_path(output_file_base) + "/" +
                 file_stem(output_file_base) + "_" + var_name + d2s(c) + "_t" +
                 tstep_str + ".bin";
   }
 
-  std::vector<std::ofstream> outs(n_components);
+  std::ofstream outs[n_components];
   for (int c = 0; c < n_components; ++c) {
     outs[c].open(fnames[c].c_str(), std::ios::binary);
     MFEM_VERIFY(outs[c], "File '" + fnames[c] + "' can't be opened");
