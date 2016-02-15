@@ -11,9 +11,16 @@ using namespace mfem;
 
 int main(int argc, char *argv[])
 {
+  int myid = 0;
+#ifdef MFEM_USE_MPI
+  MPI_Init(&argc, &argv);
+  MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+#endif
+
   if (argc == 1) // no arguments
   {
-    cout << "\nGet help with:\n" << argv[0] << " -h\n" << endl;
+    if (myid == 0)
+      cout << "\nGet help with:\n" << argv[0] << " -h\n" << endl;
     return 0;
   }
 
@@ -40,12 +47,21 @@ int main(int argc, char *argv[])
   }
   catch (int ierr)
   {
+#ifdef MFEM_USE_MPI
+    MPI_Finalize();
+#endif
     return ierr;
   }
   catch (...)
   {
+#ifdef MFEM_USE_MPI
+    MPI_Finalize();
+#endif
     cerr << "\nEXCEPTION\n";
   }
 
+#ifdef MFEM_USE_MPI
+  MPI_Finalize();
+#endif
   return 0;
 }
