@@ -1,7 +1,7 @@
 #ifndef GLL_QUADRATURE_HPP
 #define GLL_QUADRATURE_HPP
 
-#include "config.hpp"
+#include "config_elwave.hpp"
 #include "mfem.hpp"
 
 /**

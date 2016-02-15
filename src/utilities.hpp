@@ -1,9 +1,10 @@
 #ifndef UTILITIES_HPP
 #define UTILITIES_HPP
 
-#include "config.hpp"
+#include "config_elwave.hpp"
 
-#include <fstream>
+//#include <fstream>
+#include <iomanip>
 #include <sstream>
 #include <stdexcept>
 
@@ -68,20 +69,7 @@ void read_binary(const char *filename, int n_values, double *values);
 /**
  * Write a binary file
  */
-template <typename T>
-void write_binary(const char *filename, int n_values, double *values)
-{
-  std::ofstream out(filename, std::ios::binary);
-  if (!out) {
-    throw std::runtime_error("File '" + std::string(filename) +
-                             "' can't be opened");
-  }
-  T val;
-  for (int i = 0; i < n_values; ++i) {
-    val = values[i];
-    out.write(reinterpret_cast<char*>(&val), sizeof(val));
-  }
-}
+void write_binary(const char *filename, int n_values, double *values);
 
 /**
  * Find min and max values of the given array (vector) a

@@ -1,7 +1,7 @@
 #ifndef ELASTIC_WAVE3D_HPP
 #define ELASTIC_WAVE3D_HPP
 
-#include "config.hpp"
+#include "config_elwave.hpp"
 #include "mfem.hpp"
 
 #include <fstream>

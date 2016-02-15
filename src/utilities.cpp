@@ -57,6 +57,22 @@ void read_binary(const char *filename, int n_values, double *values)
 
 
 
+void write_binary(const char *filename, int n_values, double *values)
+{
+  std::ofstream out(filename, std::ios::binary);
+  if (!out) {
+    throw std::runtime_error("File '" + std::string(filename) +
+                             "' can't be opened");
+  }
+  float val;
+  for (int i = 0; i < n_values; ++i) {
+    val = values[i];
+    out.write(reinterpret_cast<char*>(&val), sizeof(val));
+  }
+}
+
+
+
 void get_minmax(double *a, int n_elements, double &min_val, double &max_val)
 {
   min_val = max_val = a[0];
@@ -384,3 +400,4 @@ bool file_exists(const std::string &path)
 
   return exists;
 }
+

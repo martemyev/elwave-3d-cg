@@ -1,14 +1,17 @@
 #ifndef SNAPSHOTS_HPP
 #define SNAPSHOTS_HPP
 
-#include "config.hpp"
+#include "config_elwave.hpp"
 
+#include <fstream>
 #include <vector>
 
-namespace mfem {
-  class Vector;
-  class Vertex;
-}
+#include "mfem.hpp"
+
+//namespace mfem {
+//  class Vector;
+//  class Vertex;
+//}
 
 
 /**

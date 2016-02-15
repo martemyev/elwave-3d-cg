@@ -1,7 +1,7 @@
 #ifndef RECEIVERS_HPP
 #define RECEIVERS_HPP
 
-#include "config.hpp"
+#include "config_elwave.hpp"
 #include "utilities.hpp"
 
 #include <fstream>

@@ -1,7 +1,7 @@
 #ifndef PARAMETERS_HPP
 #define PARAMETERS_HPP
 
-#include "config.hpp"
+#include "config_elwave.hpp"
 #include "mfem.hpp"
 #include "source.hpp"
 
