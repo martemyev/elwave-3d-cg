@@ -199,6 +199,10 @@ void ElasticWave2D::run_SEM_SRM()
     }
   } else MFEM_ABORT("Unknown source type: " + string(param.source.type));
 
+  StopWatch time_loop_timer;
+  time_loop_timer.Start();
+  double time_of_snapshots = 0.;
+  double time_of_seismograms = 0.;
   for (int time_step = 1; time_step <= n_time_steps; ++time_step)
   {
     Vector y = u_1; y *= 2.0; y -= u_2;        // y = 2*u_1 - u_2
@@ -231,24 +235,39 @@ void ElasticWave2D::run_SEM_SRM()
     v_1 /= 2.0*param.dt;
 
     // Compute and print the L^2 norm of the error
-    if (time_step % tenth == 0)
+    if (time_step % tenth == 0) {
       cout << "step " << time_step << " / " << n_time_steps
            << " ||solution||_{L^2} = " << u_0.Norml2() << endl;
+    }
 
-    if (time_step % param.step_snap == 0)
+    if (time_step % param.step_snap == 0) {
+      StopWatch timer;
+      timer.Start();
       output_snapshots(time_step, snapshot_filebase, param, u_0, v_1, mesh);
+      timer.Stop();
+      time_of_snapshots += timer.UserTime();
+    }
 
-    if (time_step % param.step_seis == 0)
+    if (time_step % param.step_seis == 0) {
+      StopWatch timer;
+      timer.Start();
       output_seismograms(param, mesh, u_0, v_1, seisU, seisV);
+      timer.Stop();
+      time_of_seismograms += timer.UserTime();
+    }
 
     u_2 = u_1;
     u_1 = u_0;
   }
 
+  time_loop_timer.Stop();
+
   delete[] seisU;
   delete[] seisV;
 
-  cout << "Time loop is over" << endl;
+  cout << "Time loop is over\n\tpure time = " << time_loop_timer.UserTime()
+       << "\n\ttime of snapshots = " << time_of_snapshots
+       << "\n\ttime of seismograms = " << time_of_seismograms << endl;
 
   delete fec;
 }
