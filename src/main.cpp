@@ -1,4 +1,4 @@
-#include "config.hpp"
+#include "config_elwave.hpp"
 #include "elastic_wave3D.hpp"
 #include "mfem.hpp"
 #include "parameters.hpp"

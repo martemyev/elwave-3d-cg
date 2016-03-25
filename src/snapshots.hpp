@@ -4,15 +4,8 @@
 #include "config_elwave.hpp"
 
 #include <fstream>
-//#include <vector>
 
 #include "mfem.hpp"
-
-//namespace mfem {
-//  class Vector;
-//  class Vertex;
-//}
-
 
 /**
  * Abstract class representing a set (a plane or a volume) where the snapshot of

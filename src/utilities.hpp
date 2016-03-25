@@ -3,7 +3,6 @@
 
 #include "config_elwave.hpp"
 
-//#include <fstream>
 #include <iomanip>
 #include <sstream>
 #include <stdexcept>
