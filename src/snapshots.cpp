@@ -263,7 +263,7 @@ save_snapshot_vector_vts(const Vector &snapshot, int time_step,
 //
 //==============================================================================
 SnapshotsVolume::SnapshotsVolume()
-  : _min_coord(), _max_coord(), _n_points(0)
+  : _min_coord(), _max_coord(), _n_points_x(0), _n_points_y(0), _n_points_z(0)
 { }
 
 void SnapshotsVolume::init(std::ifstream &in)
@@ -274,11 +274,11 @@ void SnapshotsVolume::init(std::ifstream &in)
 
   in >> _variable; getline(in, tmp);
   in >> _format;   getline(in, tmp);
-  in >> _n_points; getline(in, tmp);
+  in >> _n_points_x >> _n_points_y >> _n_points_z; getline(in, tmp);
   in >> _min_coord(0) >> _min_coord(1) >> _min_coord(2); getline(in, tmp);
   in >> _max_coord(0) >> _max_coord(1) >> _max_coord(2); getline(in, tmp);
 
-  _n_snapshot_points = _n_points*_n_points*_n_points;
+  _n_snapshot_points = _n_points_x*_n_points_y*_n_points_z;
   MFEM_VERIFY(_n_snapshot_points > 0, "The number of snapshot points (" +
               d2s(_n_snapshot_points) + ") must be >0");
 }
@@ -294,20 +294,20 @@ void SnapshotsVolume::distribute_snapshot_points()
   double y1 = _max_coord(1);
   double z1 = _max_coord(0);
 
-  const double dx = (x1 - x0) / (_n_points-1);
-  const double dy = (y1 - y0) / (_n_points-1);
-  const double dz = (z1 - z0) / (_n_points-1);
+  const double dx = (x1 - x0) / (_n_points_x-1);
+  const double dy = (y1 - y0) / (_n_points_y-1);
+  const double dz = (z1 - z0) / (_n_points_z-1);
 
   int p = 0;
-  for (int iz = 0; iz < _n_points; ++iz)
+  for (int iz = 0; iz < _n_points_z; ++iz)
   {
-    double z = (iz == _n_points-1 ? z1 : z0 + iz*dz);
-    for (int iy = 0; iy < _n_points; ++iy)
+    double z = (iz == _n_points_z-1 ? z1 : z0 + iz*dz);
+    for (int iy = 0; iy < _n_points_y; ++iy)
     {
-      double y = (iy == _n_points-1 ? y1 : y0 + iy*dy);
-      for (int ix = 0; ix < _n_points; ++ix)
+      double y = (iy == _n_points_y-1 ? y1 : y0 + iy*dy);
+      for (int ix = 0; ix < _n_points_x; ++ix)
       {
-        double x = (ix == _n_points-1 ? x1 : x0 + ix*dx);
+        double x = (ix == _n_points_x-1 ? x1 : x0 + ix*dx);
         _snapshot_points[p++] = Vertex(x, y, z);
       }
     }
@@ -336,8 +336,8 @@ save_snapshot_vector_vts(const Vector &snapshot, int time_step,
 
   out << "<?xml version=\"1.0\"?>\n";
   out << "<VTKFile type=\"StructuredGrid\" version=\"0.1\" byte_order=\"" << endianness() << "\">\n";
-  out << "  <StructuredGrid WholeExtent=\"1 " << _n_points << " 1 " << _n_points << " 1 " << _n_points << "\">\n";
-  out << "    <Piece Extent=\"1 " << _n_points << " 1 " << _n_points << " 1 " << _n_points << "\">\n";
+  out << "  <StructuredGrid WholeExtent=\"1 " << _n_points_x << " 1 " << _n_points_y << " 1 " << _n_points_z << "\">\n";
+  out << "    <Piece Extent=\"1 " << _n_points_x << " 1 " << _n_points_y << " 1 " << _n_points_z << "\">\n";
 
   out << "      <PointData>\n";
   for (int c = 0; c < n_components; ++c) {

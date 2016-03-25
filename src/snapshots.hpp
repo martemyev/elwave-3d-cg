@@ -160,8 +160,9 @@ public:
 protected:
   mfem::Vertex _min_coord;
   mfem::Vertex _max_coord;
-  int _n_points; ///< Number of points in one direction, i.e. total number of
-                 ///< snapshot points will be _n_points^3
+  int _n_points_x; ///< Number of points in x-direction
+  int _n_points_y; ///< Number of points in y-direction
+  int _n_points_z; ///< Number of points in z-direction
 
   void save_snapshot_vector_vts(const mfem::Vector &snapshot, int time_step,
                                 const std::string &var_name, int n_components,
