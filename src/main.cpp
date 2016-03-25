@@ -21,13 +21,19 @@ int main(int argc, char *argv[])
   {
     if (myid == 0)
       cout << "\nGet help with:\n" << argv[0] << " -h\n" << endl;
+#ifdef MFEM_USE_MPI
+    MPI_Finalize();
+#endif
     return 0;
   }
 
 #if defined(MFEM_DEBUG)
-  cout << "****************************\n";
-  cout << "*     DEBUG VERSION        *\n";
-  cout << "****************************\n";
+  if (myid == 0)
+  {
+    cout << "****************************\n";
+    cout << "*     DEBUG VERSION        *\n";
+    cout << "****************************\n";
+  }
 #endif
 
   try

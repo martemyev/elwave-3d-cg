@@ -2,8 +2,8 @@
 
 import struct
 
-prop_main  = 2500.0
-prop_layer = 2100.0
+prop_main  = 2000.0
+prop_layer = 1500.0
 
 # size of the domain
 sx = 1000.0
@@ -11,13 +11,13 @@ sy = 1000.0
 sz = 1000.0
 
 # coordinates of the layer
-Y0 = 300.0
-Y1 = 500.0
+Y0 = 400.0
+Y1 = 600.0
 
 # grid
-nx = 50
-ny = 50
-nz = 50
+nx = 100
+ny = 100
+nz = 100
 
 tol = 1e-8
 
