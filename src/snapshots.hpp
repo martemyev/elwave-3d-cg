@@ -117,8 +117,8 @@ public:
 protected:
   static const int N_VERTICES = 4; ///< Number of points to describe a plane
   mfem::Vertex _vertices[N_VERTICES];
-  int _n_points; ///< Number of points in one direction, i.e. total number of
-                 ///< snapshot points will be _n_points^2
+  int _n_points_1; ///< Number of points in one direction
+  int _n_points_2; ///< Number of points in another direction
   std::string _plane; ///< Description of the plane orientation
 
   void distribute_snapshot_points_YZ_plane(double x, double y0, double y1,

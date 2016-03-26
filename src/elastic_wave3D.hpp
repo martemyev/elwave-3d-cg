@@ -38,6 +38,11 @@ private:
    * Reduction Method (SRM) for implementation of absorbing boundary condition.
    */
   void run_SEM_SRM();
+
+  void run_SEM_SRM_serial();
+#if defined(MFEM_USE_MPI)
+  void run_SEM_SRM_parallel();
+#endif
 };
 
 
@@ -55,9 +60,10 @@ public:
   virtual ~CWConstCoefficient() { if (own_array) delete[] val_array; }
 
   virtual double Eval(mfem::ElementTransformation &T,
-                      const mfem::IntegrationPoint &ip)
+                      const mfem::IntegrationPoint &/*ip*/)
   {
-    return val_array[T.ElementNo];
+    const int index = T.Attribute - 1; // use attribute as a cell number
+    return val_array[index];
   }
 
 protected:
@@ -86,7 +92,8 @@ public:
   virtual double Eval(mfem::ElementTransformation &T,
                       const mfem::IntegrationPoint &ip)
   {
-    const double cw_coef = val_array[T.ElementNo];
+    const int index = T.Attribute - 1; // use attribute as a cell number
+    const double cw_coef = val_array[index];
     double x[3];
     mfem::Vector transip(x, 3);
     T.Transform(ip, transip);

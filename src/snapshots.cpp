@@ -63,7 +63,7 @@ save_snapshot_vector(const Vector &snapshot, int time_step,
 //
 //==============================================================================
 SnapshotsPlane::SnapshotsPlane()
-  : _n_points(0), _plane("unknown")
+  : _n_points_1(0), _n_points_2(0), _plane("unknown")
 { }
 
 void SnapshotsPlane::init(std::ifstream &in)
@@ -74,13 +74,13 @@ void SnapshotsPlane::init(std::ifstream &in)
 
   in >> _variable; getline(in, tmp);
   in >> _format;   getline(in, tmp);
-  in >> _n_points; getline(in, tmp);
+  in >> _n_points_1 >> _n_points_2; getline(in, tmp);
   for (int v = 0; v < N_VERTICES; ++v) {
     in >> _vertices[v](0) >> _vertices[v](1) >> _vertices[v](2);
     getline(in, tmp);
   }
 
-  _n_snapshot_points = _n_points*_n_points;
+  _n_snapshot_points = _n_points_1*_n_points_2;
   MFEM_VERIFY(_n_snapshot_points > 0, "The number of snapshot points (" +
               d2s(_n_snapshot_points) + ") must be >0");
 }
@@ -120,16 +120,16 @@ void SnapshotsPlane::distribute_snapshot_points_YZ_plane(double x,
 {
   _plane = "YZ";
 
-  const double dy = (y1 - y0) / (_n_points-1);
-  const double dz = (z1 - z0) / (_n_points-1);
+  const double dy = (y1 - y0) / (_n_points_1-1);
+  const double dz = (z1 - z0) / (_n_points_2-1);
 
   int p = 0;
-  for (int i = 0; i < _n_points; ++i)
+  for (int i = 0; i < _n_points_2; ++i)
   {
-    double z = (i == _n_points-1 ? z1 : z0 + i*dz);
-    for (int j = 0; j < _n_points; ++j)
+    double z = (i == _n_points_2-1 ? z1 : z0 + i*dz);
+    for (int j = 0; j < _n_points_1; ++j)
     {
-      double y = (j == _n_points-1 ? y1 : y0 + j*dy);
+      double y = (j == _n_points_1-1 ? y1 : y0 + j*dy);
       _snapshot_points[p++] = Vertex(x, y, z);
     }
   }
@@ -141,16 +141,16 @@ void SnapshotsPlane::distribute_snapshot_points_XZ_plane(double x0, double x1,
 {
   _plane = "XZ";
 
-  const double dx = (x1 - x0) / (_n_points-1);
-  const double dz = (z1 - z0) / (_n_points-1);
+  const double dx = (x1 - x0) / (_n_points_1-1);
+  const double dz = (z1 - z0) / (_n_points_2-1);
 
   int p = 0;
-  for (int i = 0; i < _n_points; ++i)
+  for (int i = 0; i < _n_points_2; ++i)
   {
-    double z = (i == _n_points-1 ? z1 : z0 + i*dz);
-    for (int j = 0; j < _n_points; ++j)
+    double z = (i == _n_points_2-1 ? z1 : z0 + i*dz);
+    for (int j = 0; j < _n_points_1; ++j)
     {
-      double x = (j == _n_points-1 ? x1 : x0 + j*dx);
+      double x = (j == _n_points_1-1 ? x1 : x0 + j*dx);
       _snapshot_points[p++] = Vertex(x, y, z);
     }
   }
@@ -162,16 +162,16 @@ void SnapshotsPlane::distribute_snapshot_points_XY_plane(double x0, double x1,
 {
   _plane = "XY";
 
-  const double dx = (x1 - x0) / (_n_points-1);
-  const double dy = (y1 - y0) / (_n_points-1);
+  const double dx = (x1 - x0) / (_n_points_1-1);
+  const double dy = (y1 - y0) / (_n_points_2-1);
 
   int p = 0;
-  for (int i = 0; i < _n_points; ++i)
+  for (int i = 0; i < _n_points_2; ++i)
   {
-    double y = (i == _n_points-1 ? y1 : y0 + i*dy);
-    for (int j = 0; j < _n_points; ++j)
+    double y = (i == _n_points_2-1 ? y1 : y0 + i*dy);
+    for (int j = 0; j < _n_points_1; ++j)
     {
-      double x = (j == _n_points-1 ? x1 : x0 + j*dx);
+      double x = (j == _n_points_1-1 ? x1 : x0 + j*dx);
       _snapshot_points[p++] = Vertex(x, y, z);
     }
   }
@@ -206,14 +206,14 @@ save_snapshot_vector_vts(const Vector &snapshot, int time_step,
   out << "<?xml version=\"1.0\"?>\n";
   out << "<VTKFile type=\"StructuredGrid\" version=\"0.1\" byte_order=\"" << endianness() << "\">\n";
   if (_plane == "YZ") {
-    out << "  <StructuredGrid WholeExtent=\"1 1 1 " << _n_points << " 1 " << _n_points << "\">\n";
-    out << "    <Piece Extent=\"1 1 1 " << _n_points << " 1 " << _n_points << "\">\n";
+    out << "  <StructuredGrid WholeExtent=\"1 1 1 " << _n_points_1 << " 1 " << _n_points_2 << "\">\n";
+    out << "    <Piece Extent=\"1 1 1 " << _n_points_1 << " 1 " << _n_points_2 << "\">\n";
   } else if (_plane == "XZ") {
-    out << "  <StructuredGrid WholeExtent=\"1 " << _n_points << " 1 1 1 " << _n_points << "\">\n";
-    out << "    <Piece Extent=\"1 " << _n_points << " 1 1 1 " << _n_points << "\">\n";
+    out << "  <StructuredGrid WholeExtent=\"1 " << _n_points_1 << " 1 1 1 " << _n_points_2 << "\">\n";
+    out << "    <Piece Extent=\"1 " << _n_points_1 << " 1 1 1 " << _n_points_2 << "\">\n";
   } else if (_plane == "XY") {
-    out << "  <StructuredGrid WholeExtent=\"1 " << _n_points << " 1 " << _n_points << " 1 1\">\n";
-    out << "    <Piece Extent=\"1 " << _n_points << " 1 " << _n_points << " 1 1\">\n";
+    out << "  <StructuredGrid WholeExtent=\"1 " << _n_points_1 << " 1 " << _n_points_2 << " 1 1\">\n";
+    out << "    <Piece Extent=\"1 " << _n_points_1 << " 1 " << _n_points_2 << " 1 1\">\n";
   } else MFEM_ABORT("Unknown plane: " + _plane);
 
   out << "      <PointData>\n";
