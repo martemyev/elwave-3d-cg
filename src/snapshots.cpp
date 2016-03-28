@@ -292,7 +292,7 @@ void SnapshotsVolume::distribute_snapshot_points()
   double z0 = _min_coord(2);
   double x1 = _max_coord(0);
   double y1 = _max_coord(1);
-  double z1 = _max_coord(0);
+  double z1 = _max_coord(2);
 
   const double dx = (x1 - x0) / (_n_points_x-1);
   const double dy = (y1 - y0) / (_n_points_y-1);
