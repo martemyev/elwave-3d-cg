@@ -350,6 +350,8 @@ void Parameters::init(int argc, char **argv)
       ReceiversSet *rec_set = nullptr;
       if (type == "Line")
         rec_set = new ReceiversLine();
+      else if (type == "Plane")
+        rec_set = new ReceiversPlane();
       else MFEM_ABORT("Unknown type of receivers set: " + type);
 
       rec_set->init(in); // read the parameters

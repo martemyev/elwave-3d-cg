@@ -108,4 +108,36 @@ protected:
 };
 
 
+
+
+/**
+ * A class representing a plane of receivers.
+ */
+class ReceiversPlane: public ReceiversSet
+{
+public:
+  ReceiversPlane();
+  ~ReceiversPlane() { }
+  void init(std::ifstream &in);
+  void distribute_receivers();
+  std::string description() const;
+protected:
+  static const int N_VERTICES = 4; ///< Number of points to describe a plane
+  mfem::Vertex _vertices[N_VERTICES];
+  int _n_points_1; ///< Number of points in one direction
+  int _n_points_2; ///< Number of points in another direction
+  std::string _plane; ///< Description of the plane orientation
+
+  void distribute_receivers_YZ_plane(double x, double y0, double y1,
+                                     double z0, double z1);
+  void distribute_receivers_XZ_plane(double x0, double x1, double y,
+                                     double z0, double z1);
+  void distribute_receivers_XY_plane(double x0, double x1, double y0,
+                                     double y1, double z);
+
+  ReceiversPlane(const ReceiversPlane& rec);
+  ReceiversPlane& operator =(const ReceiversPlane& rec);
+};
+
+
 #endif // RECEIVERS_HPP
