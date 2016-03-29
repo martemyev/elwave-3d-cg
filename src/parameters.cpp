@@ -193,7 +193,7 @@ BoundaryConditionsParameters::BoundaryConditionsParameters()
   : left("abs")
   , right("abs")
   , bottom("abs")
-  , top("free")
+  , top("abs")
   , front("abs")
   , back("abs")
   , damp_layer(100.0)
@@ -207,7 +207,7 @@ void BoundaryConditionsParameters::AddOptions(OptionsParser& args)
   // desired.
 //  args.AddOption(&left, "-left", "--left-surface", "Left surface: abs or free");
 //  args.AddOption(&right, "-right", "--right-surface", "Right surface: abs or free");
-//  args.AddOption(&bottom, "-bottom", "--bottom-surface", "Bottom surface: abs or free");
+  args.AddOption(&bottom, "-bottom", "--bottom-surface", "Bottom surface: abs or free");
 //  args.AddOption(&front, "-front", "--front-surface", "Front surface: abs or free");
 //  args.AddOption(&back, "-back", "--back-surface", "Back surface: abs or free");
 

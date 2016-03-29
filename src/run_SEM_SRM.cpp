@@ -3,6 +3,7 @@
 #include "parameters.hpp"
 #include "receivers.hpp"
 
+#include <float.h>
 #include <fstream>
 #include <vector>
 
@@ -51,6 +52,12 @@ void ElasticWave2D::run_SEM_SRM_serial()
   double *lambda_array = new double[n_elements];
   double *mu_array     = new double[n_elements];
 
+  double Rho[] = { DBL_MAX, DBL_MIN };
+  double Vp[]  = { DBL_MAX, DBL_MIN };
+  double Vs[]  = { DBL_MAX, DBL_MIN };
+  double Lam[] = { DBL_MAX, DBL_MIN };
+  double Mu[]  = { DBL_MAX, DBL_MIN };
+
   for (int i = 0; i < n_elements; ++i)
   {
     const double rho = param.media.rho_array[i];
@@ -62,7 +69,24 @@ void ElasticWave2D::run_SEM_SRM_serial()
 
     lambda_array[i]  = rho*(vp*vp - 2.*vs*vs);
     mu_array[i]      = rho*vs*vs;
+
+    Rho[0] = std::min(Rho[0], rho);
+    Rho[1] = std::max(Rho[1], rho);
+    Vp[0]  = std::min(Vp[0], vp);
+    Vp[1]  = std::max(Vp[1], vp);
+    Vs[0]  = std::min(Vs[0], vs);
+    Vs[1]  = std::max(Vs[1], vs);
+    Lam[0] = std::min(Lam[0], lambda_array[i]);
+    Lam[1] = std::max(Lam[1], lambda_array[i]);
+    Mu[0]  = std::min(Mu[0], mu_array[i]);
+    Mu[1]  = std::max(Mu[1], mu_array[i]);
   }
+
+  std::cout << "Rho: min " << Rho[0] << " max " << Rho[1] << "\n";
+  std::cout << "Vp: min "  << Vp[0]  << " max " << Vp[1] << "\n";
+  std::cout << "Vs: min "  << Vs[0]  << " max " << Vs[1] << "\n";
+  std::cout << "Lam: min " << Lam[0] << " max " << Lam[1] << "\n";
+  std::cout << "Mu: min "  << Mu[0]  << " max " << Mu[1] << "\n";
 
   const bool own_array = false;
   CWConstCoefficient rho_coef(param.media.rho_array, own_array);
