@@ -385,14 +385,14 @@ void save_snapshot_vector_bin(const Vector &snapshot, int time_step,
   // string representing a time step: 6 digits (first filled with 0)
   const std::string tstep_str = d2s(time_step, 0, 0, 0, 6);
 
-  std::string fnames[n_components];
+  std::vector<std::string> fnames(n_components);
   for (int c = 0; c < n_components; ++c) {
     fnames[c] = file_path(output_file_base) + "/" +
                 file_stem(output_file_base) + "_" + var_name + d2s(c) + "_t" +
                 tstep_str + ".bin";
   }
 
-  std::ofstream outs[n_components];
+  std::vector<std::ofstream> outs(n_components);
   for (int c = 0; c < n_components; ++c) {
     outs[c].open(fnames[c].c_str(), std::ios::binary);
     MFEM_VERIFY(outs[c], "File '" + fnames[c] + "' can't be opened");

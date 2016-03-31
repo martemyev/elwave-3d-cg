@@ -124,7 +124,10 @@ endif()
 
 
 add_executable(${PROJECT_NAME} ${SRC_LIST} ${HDR_LIST})
-target_link_libraries(${PROJECT_NAME} ${MFEM_LIBRARY} rt)
+target_link_libraries(${PROJECT_NAME} ${MFEM_LIBRARY})
+if (LINUX)
+  target_link_libraries(${PROJECT_NAME} rt)
+endif()
 if(BUILD_TYPE STREQUAL "PDEBUG" OR BUILD_TYPE STREQUAL "PRELEASE")
   target_link_libraries(${PROJECT_NAME} ${MPI_CXX_LIBRARIES} ${HYPRE_LIBRARY} ${METIS_LIBRARY})
   if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel")
