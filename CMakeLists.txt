@@ -125,7 +125,7 @@ endif()
 
 add_executable(${PROJECT_NAME} ${SRC_LIST} ${HDR_LIST})
 target_link_libraries(${PROJECT_NAME} ${MFEM_LIBRARY})
-if (LINUX)
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   target_link_libraries(${PROJECT_NAME} rt)
 endif()
 if(BUILD_TYPE STREQUAL "PDEBUG" OR BUILD_TYPE STREQUAL "PRELEASE")
