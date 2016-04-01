@@ -27,6 +27,8 @@ public:
   double sx, sy, sz; ///< size of the computational domain
   int nx, ny, nz; ///< number of cells in x- and y-directions
 
+  const char* meshfile; ///< name of file with mesh
+
   void AddOptions(mfem::OptionsParser& args);
   void check_parameters() const;
 

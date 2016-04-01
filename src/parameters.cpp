@@ -22,6 +22,7 @@ GridParameters::GridParameters()
   , nx(10)
   , ny(10)
   , nz(10)
+  , meshfile(DEFAULT_FILE_NAME)
 { }
 
 void GridParameters::AddOptions(OptionsParser& args)
@@ -32,6 +33,7 @@ void GridParameters::AddOptions(OptionsParser& args)
   args.AddOption(&nx, "-nx", "--numberx", "Number of elements in x-direction");
   args.AddOption(&ny, "-ny", "--numbery", "Number of elements in y-direction");
   args.AddOption(&nz, "-nz", "--numberz", "Number of elements in z-direction");
+  args.AddOption(&meshfile, "-meshfile", "--mesh-file", "Name of file with mesh");
 }
 
 void GridParameters::check_parameters() const
