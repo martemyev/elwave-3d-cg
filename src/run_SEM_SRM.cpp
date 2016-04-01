@@ -32,7 +32,7 @@ void ElasticWave2D::run_SEM_SRM_serial()
 
   chrono.Start();
   cout << "Mesh and FE space generation..." << flush;
-  const bool generate_edges = true;
+  const int generate_edges = true;
   Mesh mesh(param.grid.nx, param.grid.ny, param.grid.nz, Element::HEXAHEDRON,
             generate_edges, param.grid.sx, param.grid.sy, param.grid.sz);
   const int dim = mesh.Dimension();

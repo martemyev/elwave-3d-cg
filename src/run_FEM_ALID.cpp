@@ -2,6 +2,7 @@
 #include "parameters.hpp"
 #include "receivers.hpp"
 
+#include <float.h>
 #include <fstream>
 #include <vector>
 
@@ -19,16 +20,18 @@ void ElasticWave2D::run_FEM_ALID()
 
   chrono.Start();
   cout << "Mesh and FE space generation..." << flush;
-  const bool generate_edges = true;
-  Mesh mesh(param.grid.nx, param.grid.ny, param.grid.nz, Element::QUADRILATERAL,
+  const int generate_edges = true;
+  Mesh mesh(param.grid.nx, param.grid.ny, param.grid.nz, Element::HEXAHEDRON,
             generate_edges, param.grid.sx, param.grid.sy, param.grid.sz);
   const int dim = mesh.Dimension();
   MFEM_VERIFY(dim == SPACE_DIM, "Unexpected mesh dimension");
   const int n_elements = param.grid.nx * param.grid.ny * param.grid.nz;
   MFEM_VERIFY(n_elements == mesh.GetNE(), "Unexpected number of mesh elements");
+  for (int el = 0; el < mesh.GetNE(); ++el)
+    mesh.GetElement(el)->SetAttribute(el+1);
 
   FiniteElementCollection *fec = new H1_FECollection(param.order, dim);
-  FiniteElementSpace fespace(&mesh, fec, dim, Ordering::byVDIM);
+  FiniteElementSpace fespace(&mesh, fec, dim); //, Ordering::byVDIM);
   cout << "done. Time = " << chrono.RealTime() << " sec" << endl;
   chrono.Clear();
 
@@ -36,6 +39,12 @@ void ElasticWave2D::run_FEM_ALID()
 
   double *lambda_array = new double[n_elements];
   double *mu_array     = new double[n_elements];
+
+  double Rho[] = { DBL_MAX, DBL_MIN };
+  double Vp[]  = { DBL_MAX, DBL_MIN };
+  double Vs[]  = { DBL_MAX, DBL_MIN };
+  double Lam[] = { DBL_MAX, DBL_MIN };
+  double Mu[]  = { DBL_MAX, DBL_MIN };
 
   double *damp_weights = new double[n_elements];
   compute_damping_weights(param, damp_weights);
@@ -51,13 +60,33 @@ void ElasticWave2D::run_FEM_ALID()
     const double vs  = param.media.vs_array[i];
     const double w   = damp_weights[i];
 
+    MFEM_VERIFY(rho > 1.0 && vp > 1.0 && vs > 1.0, "Incorrect media properties "
+                "arrays");
+
     lambda_array[i]  = rho*(vp*vp - 2.*vs*vs);
     mu_array[i]      = rho*vs*vs;
 
     rho_w_array[i]   = rho*w;
     lambda_w_array[i]= lambda_array[i]*w;
     mu_w_array[i]    = mu_array[i]*w;
+
+    Rho[0] = std::min(Rho[0], rho);
+    Rho[1] = std::max(Rho[1], rho);
+    Vp[0]  = std::min(Vp[0], vp);
+    Vp[1]  = std::max(Vp[1], vp);
+    Vs[0]  = std::min(Vs[0], vs);
+    Vs[1]  = std::max(Vs[1], vs);
+    Lam[0] = std::min(Lam[0], lambda_array[i]);
+    Lam[1] = std::max(Lam[1], lambda_array[i]);
+    Mu[0]  = std::min(Mu[0], mu_array[i]);
+    Mu[1]  = std::max(Mu[1], mu_array[i]);
   }
+
+  std::cout << "Rho: min " << Rho[0] << " max " << Rho[1] << "\n";
+  std::cout << "Vp: min "  << Vp[0]  << " max " << Vp[1] << "\n";
+  std::cout << "Vs: min "  << Vs[0]  << " max " << Vs[1] << "\n";
+  std::cout << "Lam: min " << Lam[0] << " max " << Lam[1] << "\n";
+  std::cout << "Mu: min "  << Mu[0]  << " max " << Mu[1] << "\n";
 
   const bool own_array = false;
   CWConstCoefficient rho_coef(param.media.rho_array, own_array);
