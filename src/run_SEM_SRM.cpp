@@ -32,18 +32,48 @@ void ElasticWave2D::run_SEM_SRM_serial()
 
   chrono.Start();
   cout << "Mesh and FE space generation..." << flush;
-  const int generate_edges = true;
-  Mesh mesh(param.grid.nx, param.grid.ny, param.grid.nz, Element::HEXAHEDRON,
-            generate_edges, param.grid.sx, param.grid.sy, param.grid.sz);
-  const int dim = mesh.Dimension();
+  const int generate_edges = 1;
+  Mesh *mesh;
+  if (strcmp(param.grid.meshfile, DEFAULT_FILE_NAME))
+  {
+    std::cout << "Reading mesh from " << param.grid.meshfile << "\n";
+    std::ifstream in(param.grid.meshfile);
+    MFEM_VERIFY(in, "File can't be opened");
+    const int refine = 0;
+    mesh = new Mesh(in, generate_edges, refine);
+    double xmin = DBL_MAX, xmax = DBL_MIN, ymin = DBL_MAX, ymax = DBL_MIN,
+           zmin = DBL_MAX, zmax = DBL_MIN;
+    for (int i = 0; i < mesh->GetNV(); ++i) {
+      const double* v = mesh->GetVertex(i);
+      xmin = std::min(xmin, v[0]);
+      xmax = std::max(xmax, v[0]);
+      ymin = std::min(ymin, v[1]);
+      ymax = std::max(ymax, v[1]);
+      zmin = std::min(zmin, v[2]);
+      zmax = std::max(zmax, v[2]);
+    }
+    std::cout << "min coord: x " << xmin << " y " << ymin << " z " << zmin
+              << "\nmax coord: x " << xmax << " y " << ymax << " z " << zmax
+              << "\n";
+    param.grid.sx = xmax - xmin;
+    param.grid.sy = ymax - ymin;
+    param.grid.sz = zmax - zmin;
+  }
+  else
+  {
+    mesh = new Mesh(param.grid.nx, param.grid.ny, param.grid.nz, 
+                    Element::HEXAHEDRON, generate_edges, 
+                    param.grid.sx, param.grid.sy, param.grid.sz);
+  }
+  const int dim = mesh->Dimension();
   MFEM_VERIFY(dim == SPACE_DIM, "Unexpected mesh dimension");
   const int n_elements = param.grid.nx * param.grid.ny * param.grid.nz;
-  MFEM_VERIFY(n_elements == mesh.GetNE(), "Unexpected number of mesh elements");
-  for (int el = 0; el < mesh.GetNE(); ++el)
-    mesh.GetElement(el)->SetAttribute(el+1);
+  MFEM_VERIFY(n_elements == mesh->GetNE(), "Unexpected number of mesh elements");
+  for (int el = 0; el < mesh->GetNE(); ++el)
+    mesh->GetElement(el)->SetAttribute(el+1);
 
   FiniteElementCollection *fec = new H1_FECollection(param.order, dim);
-  FiniteElementSpace fespace(&mesh, fec, dim); //, Ordering::byVDIM);
+  FiniteElementSpace fespace(mesh, fec, dim); //, Ordering::byVDIM);
   cout << "done. Time = " << chrono.RealTime() << " sec" << endl;
   chrono.Clear();
 
@@ -278,7 +308,7 @@ void ElasticWave2D::run_SEM_SRM_serial()
     if (time_step % param.step_snap == 0) {
       StopWatch timer;
       timer.Start();
-      output_snapshots(time_step, snapshot_filebase, param, u_0, v_1, mesh);
+      output_snapshots(time_step, snapshot_filebase, param, u_0, v_1, *mesh);
       timer.Stop();
       time_of_snapshots += timer.UserTime();
     }
@@ -286,7 +316,7 @@ void ElasticWave2D::run_SEM_SRM_serial()
     if (time_step % param.step_seis == 0) {
       StopWatch timer;
       timer.Start();
-      output_seismograms(param, mesh, u_0, v_1, seisU, seisV);
+      output_seismograms(param, *mesh, u_0, v_1, seisU, seisV);
       timer.Stop();
       time_of_seismograms += timer.UserTime();
     }
@@ -304,6 +334,7 @@ void ElasticWave2D::run_SEM_SRM_serial()
        << "\n\ttime of snapshots = " << time_of_snapshots
        << "\n\ttime of seismograms = " << time_of_seismograms << endl;
 
+  delete mesh;
   delete fec;
 }
 
