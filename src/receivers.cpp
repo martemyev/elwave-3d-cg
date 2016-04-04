@@ -16,8 +16,7 @@ ReceiversSet::ReceiversSet()
 { }
 
 void ReceiversSet::
-find_cells_containing_receivers(int nx, int ny, int nz, double sx, double sy,
-                                double sz)
+find_cells_containing_receivers(const Mesh &mesh)
 {
   MFEM_VERIFY(!_receivers.empty(), "The receivers haven't been distributed yet");
 
@@ -28,8 +27,7 @@ find_cells_containing_receivers(int nx, int ny, int nz, double sx, double sy,
   const bool throw_exception = true;
 
   for (int p = 0; p < _n_receivers; ++p)
-    _cells_containing_receivers[p] = find_element(sx, sy, sz, nx, ny, nz,
-                                                  _receivers[p],
+    _cells_containing_receivers[p] = find_element(mesh, _receivers[p],
                                                   throw_exception);
 }
 

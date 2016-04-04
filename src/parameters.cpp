@@ -142,10 +142,8 @@ void MediaPropertiesParameters::check_parameters() const
   // no checks here
 }
 
-void MediaPropertiesParameters::init(const GridParameters& grid)
+void MediaPropertiesParameters::init(int n_elements)
 {
-  const int n_elements = grid.nx*grid.ny*grid.nz;
-
   rho_array = new double[n_elements];
   vp_array = new double[n_elements];
   vs_array = new double[n_elements];
@@ -192,12 +190,12 @@ void MediaPropertiesParameters::init(const GridParameters& grid)
 //
 //------------------------------------------------------------------------------
 BoundaryConditionsParameters::BoundaryConditionsParameters()
-  : left("abs")
-  , right("abs")
+  : left  ("abs")
+  , right ("abs")
   , bottom("abs")
-  , top("abs")
-  , front("abs")
-  , back("abs")
+  , top   ("abs")
+  , front ("abs")
+  , back  ("abs")
   , damp_layer(100.0)
   , damp_power(3.0)
 { }
@@ -269,6 +267,8 @@ Parameters::~Parameters()
 
   for (size_t i = 0; i < sets_of_receivers.size(); ++i)
     delete sets_of_receivers[i];
+
+  delete mesh;
 }
 
 void Parameters::init(int argc, char **argv)
@@ -301,7 +301,51 @@ void Parameters::init(int argc, char **argv)
 
   check_parameters();
 
-  media.init(grid);
+
+  cout << "Mesh initialization..." << endl;
+  const int generate_edges = 1;
+  if (strcmp(grid.meshfile, DEFAULT_FILE_NAME))
+  {
+    cout << "Reading mesh from " << grid.meshfile << endl;
+    ifstream in(grid.meshfile);
+    MFEM_VERIFY(in, "File can't be opened");
+    const int refine = 0;
+    mesh = new Mesh(in, generate_edges, refine);
+    double xmin = DBL_MAX, xmax = DBL_MIN;
+    double ymin = DBL_MAX, ymax = DBL_MIN;
+    double zmin = DBL_MAX, zmax = DBL_MIN;
+    for (int i = 0; i < mesh->GetNV(); ++i) {
+      const double* v = mesh->GetVertex(i);
+      xmin = std::min(xmin, v[0]);
+      xmax = std::max(xmax, v[0]);
+      ymin = std::min(ymin, v[1]);
+      ymax = std::max(ymax, v[1]);
+      zmin = std::min(zmin, v[2]);
+      zmax = std::max(zmax, v[2]);
+    }
+    cout << "min coord: x " << xmin << " y " << ymin << " z " << zmin
+         << "\nmax coord: x " << xmax << " y " << ymax << " z " << zmax
+         << "\n";
+    grid.sx = xmax - xmin;
+    grid.sy = ymax - ymin;
+    grid.sz = zmax - zmin;
+  }
+  else
+  {
+    cout << "Generating mesh" << endl;
+    mesh = new Mesh(grid.nx, grid.ny, grid.nz, Element::HEXAHEDRON,
+                    generate_edges, grid.sx, grid.sy, grid.sz);
+  }
+
+  MFEM_VERIFY(mesh->Dimension() == SPACE_DIM, "Unexpected mesh dimension");
+//  MFEM_VERIFY(grid.nx*grid.ny*grid.nz == mesh->GetNE(), "Unexpected number of "
+//              "mesh elements");
+  for (int el = 0; el < mesh->GetNE(); ++el)
+    mesh->GetElement(el)->SetAttribute(el+1);
+  cout << "Mesh initialization is done" << endl;
+
+
+  media.init(mesh->GetNE());
 
   const double min_wavelength = min(media.min_vp, media.min_vs) /
                                 (2.0*source.frequency);
@@ -331,8 +375,7 @@ void Parameters::init(int argc, char **argv)
 
       snap_set->init(in); // read the parameters
       snap_set->distribute_snapshot_points();
-      snap_set->find_cells_containing_snapshot_points(grid.nx, grid.ny, grid.nz,
-                                                      grid.sx, grid.sy, grid.sz);
+      snap_set->find_cells_containing_snapshot_points(*mesh);
       sets_of_snapshots.push_back(snap_set); // put this set in the vector
     }
   }
@@ -358,8 +401,7 @@ void Parameters::init(int argc, char **argv)
 
       rec_set->init(in); // read the parameters
       rec_set->distribute_receivers();
-      rec_set->find_cells_containing_receivers(grid.nx, grid.ny, grid.nz, grid.sx,
-                                               grid.sy, grid.sz);
+      rec_set->find_cells_containing_receivers(*mesh);
       sets_of_receivers.push_back(rec_set); // put this set in the vector
     }
   }

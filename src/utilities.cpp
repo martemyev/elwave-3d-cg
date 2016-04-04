@@ -215,53 +215,49 @@ void write_vts_scalar(const std::string& filename, const std::string& solname,
 
 
 
-int find_element(double sx, double sy, double sz, int nx, int ny, int nz,
-                 const Vertex &point, bool throw_exception)
+int find_element(const Mesh &mesh, const Vertex &point, bool throw_exception)
 {
   const double px = point(0); // coordinates of the point of interest
   const double py = point(1);
   const double pz = point(2);
 
-  const double x0 = 0.0; // limits of the rectangular mesh
-  const double x1 = sx;
-  const double y0 = 0.0;
-  const double y1 = sy;
-  const double z0 = 0.0;
-  const double z1 = sz;
-
-  // check that the point is within the mesh
   const double tol = FIND_CELL_TOLERANCE;
-  if (px < x0 - tol || px > x1 + tol ||
-      py < y0 - tol || py > y1 + tol)
-  {
-    if (throw_exception)
-      MFEM_ABORT("The given point [" + d2s(px) + "," + d2s(py) + "] doesn't "
-                 "belong to the rectangular mesh");
 
-    return -1; // to show that the point in not here
+  for (int el = 0; el < mesh.GetNE(); ++el)
+  {
+    const Element *element = mesh.GetElement(el);
+    const Hexahedron *hex = dynamic_cast<const Hexahedron*>(element);
+    MFEM_VERIFY(hex, "The mesh element has to be a hexahedron");
+
+    Array<int> vert_indices;
+    hex->GetVertices(vert_indices);
+
+    const double *vert0 = mesh.GetVertex(vert_indices[0]); // min coords
+    double x0 = vert0[0], x1 = vert0[0];
+    double y0 = vert0[1], y1 = vert0[1];
+    double z0 = vert0[2], z1 = vert0[2];
+    for (int i = 1; i < hex->GetNVertices(); ++i)
+    {
+      const double *vert = mesh.GetVertex(vert_indices[i]);
+      x0 = std::min(x0, vert[0]);
+      x1 = std::max(x1, vert[0]);
+      y0 = std::min(y0, vert[1]);
+      y1 = std::max(y1, vert[1]);
+      z0 = std::min(z0, vert[2]);
+      z1 = std::max(z1, vert[2]);
+    }
+
+    if (px > x0 - tol && px < x1 + tol &&
+        py > y0 - tol && py < y1 + tol &&
+        pz > z0 - tol && pz < z1 + tol)
+      return el;
   }
 
-  // since the elements of the cubic mesh are numerated in the following
-  // way:
-  // ^ Y          / Z
-  // | -----------
-  // |/ 6  / 7  /|
-  // ----------- |
-  // | 2  | 3  |/|
-  // ----------- |
-  // | 0  | 1  |/
-  // -------------> X
-  // we can simplify the search of the element containing the given point:
+  if (throw_exception)
+    MFEM_ABORT("The given point [" + d2s(px) + "," + d2s(py) + "," + d2s(pz) +
+               "] doesn't belong to the rectangular mesh");
 
-  int cellx = (px-x0) * nx / (x1 - x0);
-  int celly = (py-y0) * ny / (y1 - y0);
-  int cellz = (pz-z0) * nz / (z1 - z0);
-
-  if (cellx) --cellx;
-  if (celly) --celly;
-  if (cellz) --cellz;
-
-  return (cellz*nx*ny + celly*nx + cellx);
+  return -1; // to show that the point in not here
 }
 
 

@@ -93,7 +93,7 @@ public:
 
   void AddOptions(mfem::OptionsParser& args);
   void check_parameters() const;
-  void init(const GridParameters& grid);
+  void init(int n_elements);
 
 private:
   MediaPropertiesParameters(const MediaPropertiesParameters&);
@@ -143,6 +143,8 @@ public:
   SourceParameters source;
   MediaPropertiesParameters media;
   BoundaryConditionsParameters bc;
+
+  mfem::Mesh *mesh;
 
   double T; ///< simulation time
   double dt; ///< time step

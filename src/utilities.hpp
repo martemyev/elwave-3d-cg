@@ -9,6 +9,7 @@
 
 namespace mfem
 {
+  class Mesh;
   class Vector;
 }
 
@@ -109,8 +110,8 @@ void write_vts_scalar(const std::string& filename, const std::string& solname,
                       double sx, double sy, double sz, int nx, int ny, int nz,
                       const mfem::Vector& sol);
 
-int find_element(double sx, double sy, double sz, int nx, int ny, int nz,
-                 const mfem::Vertex &point, bool throw_exception);
+int find_element(const mfem::Mesh &mesh, const mfem::Vertex &point,
+                 bool throw_exception);
 
 std::string endianness();
 

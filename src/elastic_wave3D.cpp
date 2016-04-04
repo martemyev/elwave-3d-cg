@@ -27,24 +27,41 @@ void ElasticWave2D::run()
 // Auxiliary useful functions
 //
 //------------------------------------------------------------------------------
-Vector compute_function_at_point(double sx, double sy, double sz,
-                                 int nx, int ny, int nz, const Mesh& mesh,
-                                 const Vertex& point, int cell,
+Vector compute_function_at_point(const Mesh& mesh, const Vertex& point, int cell,
                                  const GridFunction& U)
 {
-  const double hx = sx / nx;
-  const double hy = sy / ny;
-  const double hz = sz / nz;
+  const Element* element = mesh.GetElement(cell);
+  const Hexahedron *hex = dynamic_cast<const Hexahedron*>(element);
+  MFEM_VERIFY(hex, "The mesh element has to be a hexahedron");
 
-  const Element *element = mesh.GetElement(cell);
   Array<int> vert_indices;
-  element->GetVertices(vert_indices);
+  hex->GetVertices(vert_indices);
+
   const double *vert0 = mesh.GetVertex(vert_indices[0]); // min coords
+  double x0 = vert0[0], x1 = vert0[0];
+  double y0 = vert0[1], y1 = vert0[1];
+  double z0 = vert0[2], z1 = vert0[2];
+  for (int i = 1; i < hex->GetNVertices(); ++i)
+  {
+    const double *vert = mesh.GetVertex(vert_indices[i]);
+    x0 = std::min(x0, vert[0]);
+    x1 = std::max(x1, vert[0]);
+    y0 = std::min(y0, vert[1]);
+    y1 = std::max(y1, vert[1]);
+    z0 = std::min(z0, vert[2]);
+    z1 = std::max(z1, vert[2]);
+  }
+
+  const double hx = x1 - x0;
+  const double hy = y1 - y0;
+  const double hz = z1 - z0;
+
+  MFEM_VERIFY(hx > 0 && hy > 0 && hz > 0, "Size of the hex is wrong");
 
   IntegrationPoint ip;
-  ip.x = (point(0) - vert0[0]) / hx; // transfer to the reference space [0,1]^3
-  ip.y = (point(1) - vert0[1]) / hy;
-  ip.z = (point(2) - vert0[2]) / hz;
+  ip.x = (point(0) - x0) / hx; // transfer to the reference space [0,1]^3
+  ip.y = (point(1) - y0) / hy;
+  ip.z = (point(2) - z0) / hz;
 
   Vector values;
   U.GetVectorValue(cell, ip, values);
@@ -54,9 +71,7 @@ Vector compute_function_at_point(double sx, double sy, double sz,
 
 
 
-Vector compute_function_at_points(double sx, double sy, double sz,
-                                  int nx, int ny, int nz, const Mesh& mesh,
-                                  int n_points,
+Vector compute_function_at_points(const Mesh& mesh, int n_points,
                                   const Vertex *points,
                                   const int *cells_containing_points,
                                   const GridFunction& U)
@@ -66,8 +81,7 @@ Vector compute_function_at_points(double sx, double sy, double sz,
 
   for (int p = 0; p < n_points; ++p)
   {
-    Vector values = compute_function_at_point(sx, sy, sz,
-                                              nx, ny, nz, mesh, points[p],
+    Vector values = compute_function_at_point(mesh, points[p],
                                               cells_containing_points[p], U);
     MFEM_ASSERT(values.Size() == N_ELAST_COMPONENTS, "Unexpected vector size");
     for (int c = 0; c < N_ELAST_COMPONENTS; ++c)
@@ -131,9 +145,7 @@ void output_snapshots(int time_step, const string& snapshot_filebase,
     if (variable.find("U") != string::npos) {
       // displacement at the snapshot points
       const Vector u =
-        compute_function_at_points(param.grid.sx, param.grid.sy, param.grid.sz,
-                                   param.grid.nx, param.grid.ny, param.grid.nz,
-                                   mesh, snap_set->n_snapshot_points(),
+        compute_function_at_points(mesh, snap_set->n_snapshot_points(),
                                    snap_set->get_snapshot_points(),
                                    snap_set->get_cells_containing_snapshot_points(),
                                    U);
@@ -144,9 +156,7 @@ void output_snapshots(int time_step, const string& snapshot_filebase,
     if (variable.find("V") != string::npos) {
       // particle velocity at the snapshot points
       const Vector v =
-        compute_function_at_points(param.grid.sx, param.grid.sy, param.grid.sz,
-                                   param.grid.nx, param.grid.ny, param.grid.nz,
-                                   mesh, snap_set->n_snapshot_points(),
+        compute_function_at_points(mesh, snap_set->n_snapshot_points(),
                                    snap_set->get_snapshot_points(),
                                    snap_set->get_cells_containing_snapshot_points(),
                                    V);
@@ -211,9 +221,7 @@ void output_seismograms(const Parameters& param, const Mesh& mesh,
       }
       // displacement at the receivers
       const Vector u =
-        compute_function_at_points(param.grid.sx, param.grid.sy, param.grid.sz,
-                                   param.grid.nx, param.grid.ny, param.grid.nz,
-                                   mesh, rec_set->n_receivers(),
+        compute_function_at_points(mesh, rec_set->n_receivers(),
                                    &(rec_set->get_receivers()[0]),
                                    &(rec_set->get_cells_containing_receivers()[0]), U);
       MFEM_ASSERT(u.Size() == N_ELAST_COMPONENTS*rec_set->n_receivers(),
@@ -235,9 +243,7 @@ void output_seismograms(const Parameters& param, const Mesh& mesh,
       }
       // velocity at the receivers
       const Vector v =
-        compute_function_at_points(param.grid.sx, param.grid.sy, param.grid.sz,
-                                   param.grid.nx, param.grid.ny, param.grid.nz,
-                                   mesh, rec_set->n_receivers(),
+        compute_function_at_points(mesh, rec_set->n_receivers(),
                                    &(rec_set->get_receivers()[0]),
                                    &(rec_set->get_cells_containing_receivers()[0]), V);
       MFEM_ASSERT(v.Size() == N_ELAST_COMPONENTS*rec_set->n_receivers(),

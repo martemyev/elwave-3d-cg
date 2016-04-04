@@ -21,15 +21,8 @@ public:
 
   /**
    * Find and save the numbers of cells containing the receivers.
-   * @param nx - number of cells in x-direction
-   * @param ny - number of cells in y-direction
-   * @param nz - number of cells in z-direction
-   * @param sx - size of domain in x-direction
-   * @param sy - size of domain in y-direction
-   * @param sz - size of domain in z-direction
    */
-  void find_cells_containing_receivers(int nx, int ny, int nz, double sx,
-                                       double sy, double sz);
+  void find_cells_containing_receivers(const mfem::Mesh &mesh);
 
   std::string get_variable() const { return _variable; }
 

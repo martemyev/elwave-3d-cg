@@ -31,49 +31,13 @@ void ElasticWave2D::run_SEM_SRM_serial()
   StopWatch chrono;
 
   chrono.Start();
-  cout << "Mesh and FE space generation..." << flush;
-  const int generate_edges = 1;
-  Mesh *mesh;
-  if (strcmp(param.grid.meshfile, DEFAULT_FILE_NAME))
-  {
-    std::cout << "Reading mesh from " << param.grid.meshfile << "\n";
-    std::ifstream in(param.grid.meshfile);
-    MFEM_VERIFY(in, "File can't be opened");
-    const int refine = 0;
-    mesh = new Mesh(in, generate_edges, refine);
-    double xmin = DBL_MAX, xmax = DBL_MIN, ymin = DBL_MAX, ymax = DBL_MIN,
-           zmin = DBL_MAX, zmax = DBL_MIN;
-    for (int i = 0; i < mesh->GetNV(); ++i) {
-      const double* v = mesh->GetVertex(i);
-      xmin = std::min(xmin, v[0]);
-      xmax = std::max(xmax, v[0]);
-      ymin = std::min(ymin, v[1]);
-      ymax = std::max(ymax, v[1]);
-      zmin = std::min(zmin, v[2]);
-      zmax = std::max(zmax, v[2]);
-    }
-    std::cout << "min coord: x " << xmin << " y " << ymin << " z " << zmin
-              << "\nmax coord: x " << xmax << " y " << ymax << " z " << zmax
-              << "\n";
-    param.grid.sx = xmax - xmin;
-    param.grid.sy = ymax - ymin;
-    param.grid.sz = zmax - zmin;
-  }
-  else
-  {
-    mesh = new Mesh(param.grid.nx, param.grid.ny, param.grid.nz, 
-                    Element::HEXAHEDRON, generate_edges, 
-                    param.grid.sx, param.grid.sy, param.grid.sz);
-  }
-  const int dim = mesh->Dimension();
-  MFEM_VERIFY(dim == SPACE_DIM, "Unexpected mesh dimension");
-  const int n_elements = param.grid.nx * param.grid.ny * param.grid.nz;
-  MFEM_VERIFY(n_elements == mesh->GetNE(), "Unexpected number of mesh elements");
-  for (int el = 0; el < mesh->GetNE(); ++el)
-    mesh->GetElement(el)->SetAttribute(el+1);
 
+  const int dim = param.mesh->Dimension();
+  const int n_elements = param.mesh->GetNE();
+
+  cout << "FE space generation..." << flush;
   FiniteElementCollection *fec = new H1_FECollection(param.order, dim);
-  FiniteElementSpace fespace(mesh, fec, dim); //, Ordering::byVDIM);
+  FiniteElementSpace fespace(param.mesh, fec, dim); //, Ordering::byVDIM);
   cout << "done. Time = " << chrono.RealTime() << " sec" << endl;
   chrono.Clear();
 
@@ -264,6 +228,13 @@ void ElasticWave2D::run_SEM_SRM_serial()
     }
   } else MFEM_ABORT("Unknown source type: " + string(param.source.type));
 
+  const string name = method_name + param.extra_string;
+  const string pref_path = (string)param.output_dir + "/" + SNAPSHOTS_DIR;
+  VisItDataCollection visit_dc(name.c_str(), param.mesh);
+  visit_dc.SetPrefixPath(pref_path.c_str());
+  visit_dc.RegisterField("displacement", &u_0);
+  visit_dc.RegisterField("velocity", &v_1);
+
   StopWatch time_loop_timer;
   time_loop_timer.Start();
   double time_of_snapshots = 0.;
@@ -308,7 +279,10 @@ void ElasticWave2D::run_SEM_SRM_serial()
     if (time_step % param.step_snap == 0) {
       StopWatch timer;
       timer.Start();
-      output_snapshots(time_step, snapshot_filebase, param, u_0, v_1, *mesh);
+//      output_snapshots(time_step, snapshot_filebase, param, u_0, v_1, *param.mesh);
+      visit_dc.SetCycle(time_step);
+      visit_dc.SetTime(time_step*param.dt);
+      visit_dc.Save();
       timer.Stop();
       time_of_snapshots += timer.UserTime();
     }
@@ -316,7 +290,7 @@ void ElasticWave2D::run_SEM_SRM_serial()
     if (time_step % param.step_seis == 0) {
       StopWatch timer;
       timer.Start();
-      output_seismograms(param, *mesh, u_0, v_1, seisU, seisV);
+      output_seismograms(param, *param.mesh, u_0, v_1, seisU, seisV);
       timer.Stop();
       time_of_seismograms += timer.UserTime();
     }
@@ -334,7 +308,6 @@ void ElasticWave2D::run_SEM_SRM_serial()
        << "\n\ttime of snapshots = " << time_of_snapshots
        << "\n\ttime of seismograms = " << time_of_seismograms << endl;
 
-  delete mesh;
   delete fec;
 }
 
@@ -723,45 +696,25 @@ double stif_damp_weight(const Vector& point, const Parameters& param)
 
 void show_SRM_damp_weights(const Parameters& param)
 {
-  const int nx = param.grid.nx;
-  const int ny = param.grid.ny;
-  const int nz = param.grid.nz;
+  Vector mass_damp(param.mesh->GetNV());
+  Vector stif_damp(param.mesh->GetNV());
 
-  Vector mass_damp((nx+1)*(ny+1)*(nz+1));
-  Vector stif_damp((nx+1)*(ny+1)*(nz+1));
-
-  const double hx = param.grid.sx / nx;
-  const double hy = param.grid.sy / ny;
-  const double hz = param.grid.sz / nz;
-
-  for (int iz = 0; iz < nz+1; ++iz)
+  for (int v = 0; v < param.mesh->GetNV(); ++v)
   {
-    const double z = (iz == nz ? param.grid.sz : iz*hz);
-    for (int iy = 0; iy < ny+1; ++iy)
-    {
-      const double y = (iy == ny ? param.grid.sy : iy*hy);
-      for (int ix = 0; ix < nx+1; ++ix)
-      {
-        const double x = (ix == nx ? param.grid.sx : ix*hx);
-        Vector point(SPACE_DIM);
-        point(0) = x;
-        point(1) = y;
-        point(2) = z;
-        const double md = mass_damp_weight(point, param);
-        const double sd = stif_damp_weight(point, param);
-        const int index = iz*(nx+1)*(ny+1) + iy*(nx+1) + ix;
-        mass_damp(index) = md;
-        stif_damp(index) = sd;
-      }
-    }
+    double *vertex = param.mesh->GetVertex(v);
+    Vector point(vertex, SPACE_DIM);
+    mass_damp(v) = mass_damp_weight(point, param);
+    stif_damp(v) = stif_damp_weight(point, param);
   }
 
-  string fname = "mass_damping_weights.vts";
-  write_vts_scalar(fname, "mass_weights", param.grid.sx, param.grid.sy,
-                   param.grid.sz, nx, ny, nz, mass_damp);
+  MFEM_ABORT("NOT implemented");
 
-  fname = "stif_damping_weights.vts";
-  write_vts_scalar(fname, "stif_weights", param.grid.sx, param.grid.sy,
-                   param.grid.sz, nx, ny, nz, stif_damp);
+//  string fname = "mass_damping_weights.vts";
+//  write_vts_scalar(fname, "mass_weights", param.grid.sx, param.grid.sy,
+//                   param.grid.sz, nx, ny, nz, mass_damp);
+
+//  fname = "stif_damping_weights.vts";
+//  write_vts_scalar(fname, "stif_weights", param.grid.sx, param.grid.sy,
+//                   param.grid.sz, nx, ny, nz, stif_damp);
 }
 

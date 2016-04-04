@@ -18,11 +18,10 @@ public:
   virtual ~SnapshotsSet() { delete[] _snapshot_points; }
 
   /**
-   * Find and save the numbers of coarse and fine cells containing the points
-   * where a solution is computed to be saved.
+   * Find and save the numbers of cells containing the points where a solution
+   * is computed to be saved.
    */
-  void find_cells_containing_snapshot_points(int nx, int ny, int nz, double sx,
-                                             double sy, double sz);
+  void find_cells_containing_snapshot_points(const mfem::Mesh &mesh);
 
   std::string get_variable() const { return _variable; }
 

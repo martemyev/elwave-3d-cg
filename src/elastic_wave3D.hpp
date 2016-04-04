@@ -110,14 +110,11 @@ protected:
 
 void show_SRM_damp_weights(const Parameters& param);
 
-mfem::Vector compute_function_at_point(double sx, double sy, double sz, int nx,
-                                       int ny, int nz, const mfem::Mesh& mesh,
+mfem::Vector compute_function_at_point(const mfem::Mesh& mesh,
                                        const mfem::Vertex& point, int cell,
                                        const mfem::GridFunction& U);
 
-mfem::Vector compute_function_at_points(double sx, double sy, double sz, int nx,
-                                        int ny, int nz, const mfem::Mesh& mesh,
-                                        int n_points,
+mfem::Vector compute_function_at_points(const mfem::Mesh& mesh, int n_points,
                                         const mfem::Vertex *points,
                                         const int *cells_containing_points,
                                         const mfem::GridFunction& U);

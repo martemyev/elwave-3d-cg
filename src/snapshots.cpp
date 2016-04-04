@@ -23,8 +23,7 @@ SnapshotsSet::SnapshotsSet()
 { }
 
 void SnapshotsSet::
-find_cells_containing_snapshot_points(int nx, int ny, int nz, double sx,
-                                      double sy, double sz)
+find_cells_containing_snapshot_points(const Mesh &mesh)
 {
   MFEM_VERIFY(_snapshot_points != nullptr, "The snapshot points haven't been "
               "distributed yet");
@@ -36,8 +35,7 @@ find_cells_containing_snapshot_points(int nx, int ny, int nz, double sx,
   const bool throw_exception = true;
 
   for (int p = 0; p < _n_snapshot_points; ++p)
-    _cells_contain_snapshot_points[p] = find_element(sx, sy, sz, nx, ny, nz,
-                                                     _snapshot_points[p],
+    _cells_contain_snapshot_points[p] = find_element(mesh, _snapshot_points[p],
                                                      throw_exception);
 }
 

@@ -19,19 +19,13 @@ void ElasticWave2D::run_FEM_ALID()
   StopWatch chrono;
 
   chrono.Start();
-  cout << "Mesh and FE space generation..." << flush;
-  const int generate_edges = true;
-  Mesh mesh(param.grid.nx, param.grid.ny, param.grid.nz, Element::HEXAHEDRON,
-            generate_edges, param.grid.sx, param.grid.sy, param.grid.sz);
-  const int dim = mesh.Dimension();
-  MFEM_VERIFY(dim == SPACE_DIM, "Unexpected mesh dimension");
-  const int n_elements = param.grid.nx * param.grid.ny * param.grid.nz;
-  MFEM_VERIFY(n_elements == mesh.GetNE(), "Unexpected number of mesh elements");
-  for (int el = 0; el < mesh.GetNE(); ++el)
-    mesh.GetElement(el)->SetAttribute(el+1);
+  cout << "FE space generation..." << flush;
+
+  const int dim = param.mesh->Dimension();
+  const int n_elements = param.mesh->GetNE();
 
   FiniteElementCollection *fec = new H1_FECollection(param.order, dim);
-  FiniteElementSpace fespace(&mesh, fec, dim); //, Ordering::byVDIM);
+  FiniteElementSpace fespace(param.mesh, fec, dim); //, Ordering::byVDIM);
   cout << "done. Time = " << chrono.RealTime() << " sec" << endl;
   chrono.Clear();
 
@@ -270,10 +264,10 @@ void ElasticWave2D::run_FEM_ALID()
            << " ||solution||_{L^2} = " << u_0.Norml2() << endl;
 
     if (time_step % param.step_snap == 0)
-      output_snapshots(time_step, snapshot_filebase, param, u_0, v_1, mesh);
+      output_snapshots(time_step, snapshot_filebase, param, u_0, v_1, *param.mesh);
 
     if (time_step % param.step_seis == 0)
-      output_seismograms(param, mesh, u_0, v_1, seisU, seisV);
+      output_seismograms(param, *param.mesh, u_0, v_1, seisU, seisV);
 
     u_2 = u_1;
     u_1 = u_0;
@@ -298,53 +292,54 @@ void compute_damping_weights(const Parameters& param, double *damping_weights)
   const bool front  = (!strcmp(param.bc.front,  "abs") ? true : false);
   const bool back   = (!strcmp(param.bc.back,   "abs") ? true : false);
 
-  const int nx = param.grid.nx;
-  const int ny = param.grid.ny;
-  const int nz = param.grid.nz;
-  const double X0 = 0.0;
-  const double Y0 = 0.0;
-  const double Z0 = 0.0;
+  const double X0 = 0.;
+  const double Y0 = 0.;
+  const double Z0 = 0.;
   const double X1 = param.grid.sx;
   const double Y1 = param.grid.sy;
   const double Z1 = param.grid.sz;
   const double layer = param.bc.damp_layer;
   const double power = param.bc.damp_power;
 
-  const double hx = (X1 - X0) / nx;
-  const double hy = (Y1 - Y0) / ny;
-  const double hz = (Z1 - Z0) / nz;
-
-  for (int elz = 0; elz < nz; ++elz)
+  for (int el = 0; el < param.mesh->GetNE(); ++el)
   {
-    const double z = Z0 + (elz+0.5)*hz; // center of a cell
-    for (int ely = 0; ely < ny; ++ely)
+    const Element *element = param.mesh->GetElement(el);
+
+    Array<int> vert_indices;
+    element->GetVertices(vert_indices);
+
+    double x = 0.; // coordinates of the center of the element
+    double y = 0.;
+    double z = 0.;
+    for (int i = 0; i < vert_indices.Size(); ++i)
     {
-      const double y = Y0 + (ely+0.5)*hy; // center of a cell
-      for (int elx = 0; elx < nx; ++elx)
-      {
-        const double x = X0 + (elx+0.5)*hx; // center of a cell
-
-        double weight = 1e-12;
-
-        if (left && x - layer < X0)
-          weight += pow((X0-x+layer)/layer, power);
-        else if (right && x + layer > X1)
-          weight += pow((x+layer-X1)/layer, power);
-
-        if (bottom && y - layer < Y0)
-          weight += pow((Y0-y+layer)/layer, power);
-        else if (top && y + layer > Y1)
-          weight += pow((y+layer-Y1)/layer, power);
-
-        if (front && z - layer < Z0)
-          weight += pow((Z0-z+layer)/layer, power);
-        else if (back && z + layer > Z1)
-          weight += pow((z+layer-Z1)/layer, power);
-
-        const int el = elz*nx*ny + ely*nx + elx;
-        damping_weights[el] = weight;
-      }
+      const double *v = param.mesh->GetVertex(vert_indices[i]);
+      x += v[0];
+      y += v[1];
+      z += v[2];
     }
+    x /= vert_indices.Size();
+    y /= vert_indices.Size();
+    z /= vert_indices.Size();
+
+    double weight = 1e-12;
+
+    if (left && x - layer < X0)
+      weight += pow((X0-x+layer)/layer, power);
+    else if (right && x + layer > X1)
+      weight += pow((x+layer-X1)/layer, power);
+
+    if (bottom && y - layer < Y0)
+      weight += pow((Y0-y+layer)/layer, power);
+    else if (top && y + layer > Y1)
+      weight += pow((y+layer-Y1)/layer, power);
+
+    if (front && z - layer < Z0)
+      weight += pow((Z0-z+layer)/layer, power);
+    else if (back && z + layer > Z1)
+      weight += pow((z+layer-Z1)/layer, power);
+
+    damping_weights[el] = weight;
   }
 }
 
